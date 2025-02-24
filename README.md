@@ -1,6 +1,6 @@
 # Falling Leaves
 
-This Fabric mod for Minecraft 1.18+ adds a neat little particle effect to leaf blocks.  
+This Fabric Minecraft mod adds a neat little particle effect to leaf blocks.  
 Users can configure which types of leaf blocks will drop leaves and the frequency that these leaves are dropped at.  
   
 Requires [Cloth Config](https://www.curseforge.com/minecraft/mc-mods/cloth-config).
@@ -26,10 +26,6 @@ A complete list of all conifer trees is found [here](https://github.com/RandomMc
 - Lol fabric suxxx gief forge plx.
   - Cheaterpaul [ported this mod to Forge](https://www.curseforge.com/minecraft/mc-mods/falling-leaves-forge "Forge port"), note that this port is inofficial and might not always be up-to-date, it also does configuration differently.
 
-- Do you have any screenshots I could look at before I install this?
-  - Sure! Check out the [images section](https://www.curseforge.com/minecraft/mc-mods/falling-leaves-fabric/screenshots) of this mod's Curseforge page.  
-    (Note that they are slightly out of date.)
-
 - I enjoy old things. Can you backport this to Minecraft 1.7?
   - No. We will only focus on supporting the most recently released version of Minecraft.
 
@@ -42,6 +38,41 @@ A complete list of all conifer trees is found [here](https://github.com/RandomMc
 
 - What do you get if you jumble the letters in "Falling Leaves Mod"?
   - You get "Five Golden Llamas". We're still not sure if this means anything in particular...
+
+## Custom Textures
+
+![](https://i.imgur.com/jIup4qv.png)  
+(Just a bad example of a block-specific custom texture)
+
+It has always been possible to add or change the falling leaf textures through the use of resource packs (by overwriting the mod's particle definitions and/or textures).   
+Since 1.17.0 it is now also possible use specific textures for specific blocks.  
+There is an [example resource pack](CustomFallingLeavesTexturesExample.zip) that uses two custom leaf textures for Oak Leaves. It should be pretty self-explanatory, but here's instructions just in case:  
+
+Add your textures under `assets/fallingleaves/textures/particle/` while making sure to use unique names (or even better: subfolders), e.g.:
+```
+assets/fallingleaves/textures/particle/example/texture_1.png
+assets/fallingleaves/textures/particle/example/texture_2.png
+```
+
+Add a particle definition for the block you want, let's say the block has the id `golden_llamas:leaf_block`:
+
+`assets/fallingleaves/particles/block/golden_llamas/leaf_block.json`:
+
+```JSON
+{
+  "textures": [
+    "fallingleaves:example/texture_1",
+    "fallingleaves:example/texture_2"
+  ]
+}
+```
+
+## Leaf Spawners
+
+When your trees look like this:  
+![](https://i.imgur.com/UGiuOj4.png)  
+
+You can make them drop leaves by adding the relevant block ids under "Additional block states that drop leaves" in the experimental settings tab.
 
 ## Thanks and Credits
 
