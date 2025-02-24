@@ -6,7 +6,11 @@ import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.particle.ParticleFactory;
+import net.minecraft.client.particle.ParticleManager;
+import net.minecraft.client.particle.ParticleManager.SimpleSpriteProvider;
+import net.minecraft.client.particle.SpriteProvider;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleType;
@@ -20,16 +24,17 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
+import org.apache.commons.lang3.StringUtils;
+import randommcsomethin.fallingleaves.FallingLeavesClient;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
+import randommcsomethin.fallingleaves.mixin.SimpleSpriteProviderInvoker;
 import randommcsomethin.fallingleaves.particle.FallingLeafParticle;
 import randommcsomethin.fallingleaves.util.LeafUtil;
 import randommcsomethin.fallingleaves.util.TextureCache;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
+import java.util.*;
 
-import static randommcsomethin.fallingleaves.FallingLeavesClient.LOGGER;
-import static randommcsomethin.fallingleaves.FallingLeavesClient.id;
+import static randommcsomethin.fallingleaves.FallingLeavesClient.*;
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 import static randommcsomethin.fallingleaves.util.LeafUtil.getLeafSettingsEntry;
 
@@ -40,6 +45,8 @@ public class Leaves {
 
     public static final Map<ParticleType<BlockStateParticleEffect>, Identifier> LEAVES;
     public static final Map<ParticleType<BlockStateParticleEffect>, ParticleFactory<BlockStateParticleEffect>> FACTORIES = new IdentityHashMap<>();
+
+    public static final Map<Identifier, SimpleSpriteProvider> CUSTOM_LEAVES = new HashMap<>();
 
     private static boolean preLoadedRegisteredLeafBlocks = false;
 

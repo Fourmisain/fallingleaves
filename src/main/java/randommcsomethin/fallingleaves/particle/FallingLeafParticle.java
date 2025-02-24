@@ -9,6 +9,7 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.particle.SimpleParticleType;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -18,6 +19,7 @@ import randommcsomethin.fallingleaves.util.Wind;
 
 import java.util.List;
 
+import static randommcsomethin.fallingleaves.FallingLeavesClient.id;
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 
 public class FallingLeafParticle extends SpriteBillboardParticle {
@@ -219,10 +221,13 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
     }
 
     @Environment(EnvType.CLIENT)
-    public record BlockStateFactory(SpriteProvider provider) implements ParticleFactory<BlockStateParticleEffect> {
+    public record BlockStateFactory(SpriteProvider spriteProvider) implements ParticleFactory<BlockStateParticleEffect> {
         @Override
         public Particle createParticle(BlockStateParticleEffect parameters, ClientWorld world, double x, double y, double z, double unusedX, double unusedY, double unusedZ) {
             double r, g, b;
+
+            var blockId = Registries.BLOCK.getId(parameters.getBlockState().getBlock());
+            var customSpriteProvider = Leaves.CUSTOM_LEAVES.get(id("block/%s/%s".formatted(blockId.getNamespace(), blockId.getPath())));
 
             if (parameters.getType() == Leaves.FALLING_SNOW) {
                 r = g = b = 1;
@@ -234,7 +239,7 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
                 b = color[2];
             }
 
-            return new FallingLeafParticle(world, x, y, z, r, g, b, provider);
+            return new FallingLeafParticle(world, x, y, z, r, g, b, customSpriteProvider != null ? customSpriteProvider : spriteProvider);
         }
     }
 
