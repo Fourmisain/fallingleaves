@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT'
+    id 'fabric-loom' version '1.10-SNAPSHOT'
     id 'maven-publish'
     id 'com.matthewprenger.cursegradle' version '1.4.0'
     id 'com.modrinth.minotaur' version '2.+'
@@ -75,8 +75,10 @@ java {
 }
 
 jar {
+    inputs.property "archivesName", project.base.archivesName
+
     from("LICENSE") {
-        rename { "${it}_${project.mod_id}" }
+        rename { "${it}_${inputs.properties.archivesName}" }
     }
 }
 
