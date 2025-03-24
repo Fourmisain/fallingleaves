@@ -15,6 +15,7 @@ import org.apache.logging.log4j.core.config.Configurator;
 import randommcsomethin.fallingleaves.FallingLeavesClient;
 import randommcsomethin.fallingleaves.config.FallingLeavesConfig;
 import randommcsomethin.fallingleaves.config.FallingLeavesConfigV0;
+import randommcsomethin.fallingleaves.config.FallingLeavesConfigV1;
 import randommcsomethin.fallingleaves.config.gson.GsonConfigHelper;
 import randommcsomethin.fallingleaves.config.gson.IdentifierTypeAdapter;
 import randommcsomethin.fallingleaves.config.gson.LeafSettingsTypeAdapter;
@@ -41,7 +42,8 @@ public class Config {
     private static ConfigHolder<FallingLeavesConfig> configHolder;
 
     public static void init() {
-        migrateOldConfig();
+        migrateConfigV0toV1();
+        migrateConfigV1toV2();
 
         configHolder = AutoConfig.register(FallingLeavesConfig.class, (definition, configClass) -> new GsonConfigSerializer<>(definition, configClass, GSON));
         CONFIG = configHolder.getConfig();
@@ -83,8 +85,65 @@ public class Config {
         configHolder.save();
     }
 
+    /** Migrates config v1 (1.5 to 1.17) to v2 (2.0+) */
+    private static void migrateConfigV1toV2() {
+        GsonConfigHelper newGsonHelper = new GsonConfigHelper("fallingleaves2", GSON);
+        GsonConfigHelper oldGsonHelper = new GsonConfigHelper(FallingLeavesClient.MOD_ID, GSON);
+        if (newGsonHelper.exists() || !oldGsonHelper.exists())
+            return; // nothing to migrate
+
+        FallingLeavesConfigV1 oldConfig;
+        try {
+            oldConfig = oldGsonHelper.load(FallingLeavesConfigV1.class);
+        } catch (IOException | JsonParseException e) {
+            LOGGER.debug("Couldn't load config as v1?!");
+            return;
+        }
+
+        LOGGER.info("Migrating v1 config (fallingleaves.json) to v2 (fallingleaves2.json)");
+
+        FallingLeavesConfig newConfig = new FallingLeavesConfig();
+
+        newConfig.displayDebugData = oldConfig.displayDebugData;
+        newConfig.enabled = oldConfig.enabled;
+        newConfig.leafSize = oldConfig.leafSize;
+        newConfig.leafLifespan = oldConfig.leafLifespan;
+        // ignore spawn rates
+        newConfig.dropFromPlayerPlacedBlocks = oldConfig.dropFromPlayerPlacedBlocks;
+        newConfig.leavesOnBlockHit = oldConfig.leavesOnBlockHit;
+        newConfig.minimumFreeSpaceBelow = oldConfig.minimumFreeSpaceBelow;
+        newConfig.windEnabled = oldConfig.windEnabled;
+        newConfig.windlessDimensions = oldConfig.windlessDimensions;
+
+        oldConfig.leafSettings.forEach((id, oldEntry) -> {
+            newConfig.updateLeafSettings(id, (newEntry) -> {
+                // ignore spawn rates
+                newEntry.isConiferBlock = oldEntry.isConiferBlock;
+                newEntry.spawnBreakingLeaves = oldEntry.spawnBreakingLeaves;
+            });
+        });
+
+        newConfig.leafSpawners = oldConfig.leafSpawners;
+        newConfig.fallSpawnRateFactor = (float) oldConfig.fallSpawnRateFactor;
+        newConfig.winterSpawnRateFactor = (float) oldConfig.winterSpawnRateFactor;
+        newConfig.startingSpawnRadius = oldConfig.startingSpawnRadius;
+        newConfig.decaySpawnRateFactor = (float) oldConfig.decaySpawnRateFactor;
+        newConfig.maxDecayLeaves = oldConfig.maxDecayLeaves;
+        newConfig.registerParticles = oldConfig.registerParticles;
+
+        try {
+            newConfig.validatePostLoad();
+            newGsonHelper.save(newConfig);
+            LOGGER.info("Migrated to v2 successfully");
+        } catch (IOException | JsonIOException e) {
+            LOGGER.error("Couldn't save migrated config!", e);
+        } catch (ConfigData.ValidationException e) {
+            LOGGER.error("Couldn't validate new config!", e);
+        }
+    }
+
     /** Migrates the old config v0 (1.0 to 1.4) to v1 (1.5+) */
-    private static void migrateOldConfig() {
+    private static void migrateConfigV0toV1() {
         GsonConfigHelper gsonHelper = new GsonConfigHelper(FallingLeavesClient.MOD_ID, GSON);
         if (!gsonHelper.exists()) return; // nothing to migrate
 
@@ -102,9 +161,9 @@ public class Config {
             return;
         }
 
-        LOGGER.info("Migrating old v0 config");
+        LOGGER.info("Migrating v0 config to v1");
 
-        FallingLeavesConfig newConfig = new FallingLeavesConfig();
+        FallingLeavesConfigV1 newConfig = new FallingLeavesConfigV1();
 
         // In 1.4 leafSize was a double with default 0.1, which matches newConfig.getLeafSize()
         newConfig.setLeafSize(oldConfig.leafSize);
@@ -142,7 +201,7 @@ public class Config {
 
         try {
             gsonHelper.save(newConfig);
-            LOGGER.info("Migrated successfully");
+            LOGGER.info("Migrated to v1 successfully");
         } catch (IOException | JsonIOException e) {
             LOGGER.error("Couldn't save migrated config!", e);
         }

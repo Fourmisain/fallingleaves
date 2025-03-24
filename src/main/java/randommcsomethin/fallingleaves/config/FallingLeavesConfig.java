@@ -8,20 +8,20 @@ import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.Identifier;
-import randommcsomethin.fallingleaves.FallingLeavesClient;
 
 import java.util.*;
 import java.util.function.Consumer;
 
 import static randommcsomethin.fallingleaves.FallingLeavesClient.LOGGER;
+import static randommcsomethin.fallingleaves.config.ConfigDefaults.DEFAULT_SPAWN_CHANCE;
 
-@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal", "FieldCanBeLocal"})
-@Config(name = FallingLeavesClient.MOD_ID)
+@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal", "FieldCanBeLocal", "MismatchedQueryAndUpdateOfCollection"})
+@Config(name = "fallingleaves2")
 public class FallingLeavesConfig implements ConfigData {
 
     @ConfigEntry.Gui.Excluded
     @ConfigEntry.Category("fallingleaves.general")
-    public int version = 1;
+    public int version = 2;
 
     @ConfigEntry.Gui.Excluded
     @ConfigEntry.Category("fallingleaves.general")
@@ -31,8 +31,14 @@ public class FallingLeavesConfig implements ConfigData {
     public boolean enabled = true;
 
     @ConfigEntry.Category("fallingleaves.general")
+    public boolean alwaysUseVanillaParticles = false;
+
+    @ConfigEntry.Category("fallingleaves.general")
+    public boolean useVanillaTextures = false;
+
+    @ConfigEntry.Category("fallingleaves.general")
     @ConfigEntry.BoundedDiscrete(min = 1, max = 10)
-    private int leafSize = 5;
+    public int leafSize = 5;
 
     public float getLeafSize() {
         return leafSize / 50F;
@@ -45,53 +51,36 @@ public class FallingLeavesConfig implements ConfigData {
 
     @ConfigEntry.Category("fallingleaves.general")
     @ConfigEntry.Gui.Tooltip
-    @ConfigEntry.BoundedDiscrete(max = 20)
-    private int leafSpawnRate = 10;
+    @ConfigEntry.BoundedDiscrete(max = 40)
+    private int leafSpawnRate = 20;
 
     // 1.4 had a default spawn chance of 1.0 / 75 ~ 1.33% that could be set to 100%
     // 1.5 has the same default but is bounded to ~2.66% except when boosted by a spawn rate factor,
     // the maximum upper bound is currently ~26.6%
-    public double getBaseLeafSpawnChance() {
-        double actualSpawnRate = leafSpawnRate / 10.0;
-        return actualSpawnRate / 75.0;
-    }
-
-    @ConfigEntry.Category("fallingleaves.general")
-    @ConfigEntry.Gui.Tooltip
-    @ConfigEntry.BoundedDiscrete(max = 20)
-    private int coniferLeafSpawnRate = 0;
-
-    public double getBaseConiferLeafSpawnChance() {
-        double actualSpawnRate = coniferLeafSpawnRate / 10.0;
-        return actualSpawnRate / 75.0;
-    }
-
-    @ConfigEntry.Category("fallingleaves.general")
-    @ConfigEntry.Gui.Tooltip
-    @ConfigEntry.BoundedDiscrete(max = 20)
-    public int cherrySpawnRate = 10;
-
-    public double getCherrySpawnRateFactor() {
-        return cherrySpawnRate / 20.0;
-    }
-
-    @ConfigEntry.Category("fallingleaves.general")
-    @ConfigEntry.Gui.Tooltip
-    @ConfigEntry.BoundedDiscrete(max = 20)
-    public int paleOakSpawnRate = 10;
-
-    public double getPaleOakSpawnRateFactor() {
-        return paleOakSpawnRate / 20.0;
+    // 2.0 is based on the vanilla default of 1%, which goes up to 10% for cherry
+    public float getBaseLeafSpawnChance() {
+        float factor = leafSpawnRate / 20.0f;
+        return factor * DEFAULT_SPAWN_CHANCE;
     }
 
     @ConfigEntry.Category("fallingleaves.general")
     @ConfigEntry.Gui.Tooltip
     @ConfigEntry.BoundedDiscrete(max = 40)
-    private int snowflakeSpawnRate = 15;
+    private int coniferLeafSpawnRate = 0;
 
-    public double getSnowflakeSpawnChance() {
-        double actualSpawnRate = snowflakeSpawnRate / 10.0;
-        return actualSpawnRate / 75.0;
+    public float getBaseConiferLeafSpawnChance() {
+        float factor = coniferLeafSpawnRate / 20.0f;
+        return factor * DEFAULT_SPAWN_CHANCE;
+    }
+
+    @ConfigEntry.Category("fallingleaves.general")
+    @ConfigEntry.Gui.Tooltip
+    @ConfigEntry.BoundedDiscrete(max = 40)
+    private int snowflakeSpawnRate = 30;
+
+    public float getSnowflakeSpawnChance() {
+        float factor = snowflakeSpawnRate / 20.0f;
+        return factor * DEFAULT_SPAWN_CHANCE;
     }
 
     @ConfigEntry.Category("fallingleaves.general")
@@ -119,7 +108,7 @@ public class FallingLeavesConfig implements ConfigData {
 
     @ConfigEntry.Category("fallingleaves.experimental")
     @ConfigEntry.Gui.Tooltip(count = 2)
-    private Set<String> leafSpawners = new HashSet<>();  // block ids with properties, e.g. minecraft:bamboo[leaves=large]
+    public Set<String> leafSpawners = new HashSet<>();  // block ids with properties, e.g. minecraft:bamboo[leaves=large]
     @ConfigEntry.Gui.Excluded @ConfigEntry.Category("fallingleaves.experimental")
     private transient Set<Identifier> leafSpawnerIds = new HashSet<>();
     @ConfigEntry.Gui.Excluded @ConfigEntry.Category("fallingleaves.experimental")
@@ -127,11 +116,11 @@ public class FallingLeavesConfig implements ConfigData {
 
     @ConfigEntry.Category("fallingleaves.experimental")
     @ConfigEntry.Gui.Tooltip
-    public double fallSpawnRateFactor = 1.8;
+    public float fallSpawnRateFactor = 1.8f;
 
     @ConfigEntry.Category("fallingleaves.experimental")
     @ConfigEntry.Gui.Tooltip
-    public double winterSpawnRateFactor = 0.1;
+    public float winterSpawnRateFactor = 0.1f;
 
     @ConfigEntry.Category("fallingleaves.experimental")
     @ConfigEntry.Gui.Tooltip
@@ -140,7 +129,7 @@ public class FallingLeavesConfig implements ConfigData {
 
     @ConfigEntry.Category("fallingleaves.experimental")
     @ConfigEntry.Gui.Tooltip
-    public double decaySpawnRateFactor = 2.6;
+    public float decaySpawnRateFactor = 2.6f;
 
     @ConfigEntry.Category("fallingleaves.experimental")
     @ConfigEntry.Gui.Tooltip(count = 2)
@@ -163,28 +152,9 @@ public class FallingLeavesConfig implements ConfigData {
         leafSettings.compute(blockId, (id, entry) -> {
             if (entry == null)
                 entry = new LeafSettingsEntry(id);
-
             f.accept(entry);
-
             return entry;
         });
-    }
-
-    /* Setters only used for config migration right now */
-
-    /** Inverse of getLeafSize() */
-    public void setLeafSize(double leafSize) {
-        this.leafSize = (int)(leafSize * 50.0);
-    }
-
-    /** Inverse of "actualSpawnRate" in getBaseLeafSpawnChance() */
-    public void setLeafSpawnRate(double leafRate) {
-        leafSpawnRate = (int)(leafRate * 10.0);
-    }
-
-    /** Inverse of "actualSpawnRate" in getBaseConiferLeafSpawnChance() */
-    public void setConiferLeafSpawnRate(double coniferLeafRate) {
-        coniferLeafSpawnRate = (int)(coniferLeafRate * 10.0);
     }
 
     private void parseLeafSpawners() {
@@ -214,7 +184,7 @@ public class FallingLeavesConfig implements ConfigData {
 
     @Override
     public void validatePostLoad() throws ConfigData.ValidationException {
-        version = 1;
+        version = 2;
         leafSize = Math.max(leafSize, 1);
         minimumFreeSpaceBelow = Math.max(minimumFreeSpaceBelow, 1);
 

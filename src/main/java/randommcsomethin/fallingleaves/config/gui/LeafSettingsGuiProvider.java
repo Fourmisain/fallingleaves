@@ -4,8 +4,10 @@ import me.shedaniel.autoconfig.gui.registry.api.GuiProvider;
 import me.shedaniel.autoconfig.gui.registry.api.GuiRegistryAccess;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
 import me.shedaniel.clothconfig2.gui.entries.BooleanListEntry;
+import me.shedaniel.clothconfig2.gui.entries.EnumListEntry;
 import me.shedaniel.clothconfig2.gui.entries.IntegerSliderEntry;
 import me.shedaniel.clothconfig2.impl.builders.BooleanToggleBuilder;
+import me.shedaniel.clothconfig2.impl.builders.EnumSelectorBuilder;
 import me.shedaniel.clothconfig2.impl.builders.IntSliderBuilder;
 import me.shedaniel.clothconfig2.impl.builders.SubCategoryBuilder;
 import net.fabricmc.loader.api.FabricLoader;
@@ -16,6 +18,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import randommcsomethin.fallingleaves.config.ConfigDefaults;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
+import randommcsomethin.fallingleaves.particle.ParticleImplementation;
 import randommcsomethin.fallingleaves.util.TranslationComparator;
 
 import java.lang.reflect.Field;
@@ -57,8 +60,8 @@ public class LeafSettingsGuiProvider implements GuiProvider {
                     SubCategoryBuilder builder = new SubCategoryBuilder(RESET_TEXT, text)
                         .setTooltip(Text.of(getModName(blockId.getNamespace())));
 
+                    builder.add(buildParticleImplementationSelector(blockId, leafEntry));
                     builder.add(buildSpawnRateFactorSlider(blockId, leafEntry));
-                    builder.add(buildIsConiferLeavesToggle(blockId, leafEntry));
                     builder.add(buildSpawnBreakingLeaves(blockId, leafEntry));
 
                     entries.add(builder.build());
@@ -74,7 +77,7 @@ public class LeafSettingsGuiProvider implements GuiProvider {
     private static IntegerSliderEntry buildSpawnRateFactorSlider(Identifier blockId, LeafSettingsEntry entry) {
         // Percentage values
         int min = 0;
-        int max = 1000;
+        int max = 1500; // cherry goes up to 1000
         int stepSize = 10;
         int currentValue = (int)(entry.spawnRateFactor * 100.0);
         int defaultValue = (int)(ConfigDefaults.spawnRateFactor(blockId) * 100.0);
@@ -84,29 +87,29 @@ public class LeafSettingsGuiProvider implements GuiProvider {
         currentValue /= stepSize;
         defaultValue /= stepSize;
 
-        return new IntSliderBuilder(RESET_TEXT, Text.translatable("config.fallingleaves.spawn_rate_factor"), currentValue, min, max)
+        return new IntSliderBuilder(RESET_TEXT, Text.translatable("config.fallingleaves2.spawn_rate_factor"), currentValue, min, max)
             .setDefaultValue(defaultValue)
             .setSaveConsumer((Integer value) -> {
-                entry.spawnRateFactor = (value * stepSize) / 100.0;
+                entry.spawnRateFactor = (value * stepSize) / 100.0f;
             })
             .setTextGetter((Integer value) -> {
                 return Text.of((value * stepSize) + "%");
             })
-            .setTooltip(Text.translatable("config.fallingleaves.spawn_rate_factor.@Tooltip"))
+            .setTooltip(Text.translatable("config.fallingleaves2.spawn_rate_factor.@Tooltip"))
             .build();
     }
 
-    private static BooleanListEntry buildIsConiferLeavesToggle(Identifier blockId, LeafSettingsEntry entry) {
-        return new BooleanToggleBuilder(RESET_TEXT, Text.translatable("config.fallingleaves.is_conifer"), entry.isConiferBlock)
-            .setDefaultValue(ConfigDefaults.isConifer(blockId))
-            .setSaveConsumer((Boolean value) -> {
-                entry.isConiferBlock = value;
+    private static EnumListEntry<ParticleImplementation> buildParticleImplementationSelector(Identifier blockId, LeafSettingsEntry entry) {
+        return new EnumSelectorBuilder<>(RESET_TEXT, Text.translatable("config.fallingleaves2.particle_implementation"), ParticleImplementation.class, entry.particleImplementation)
+            .setDefaultValue(ConfigDefaults.getImplementation(blockId))
+            .setSaveConsumer((ParticleImplementation value) -> {
+                entry.particleImplementation = value;
             })
             .build();
     }
 
     private static BooleanListEntry buildSpawnBreakingLeaves(Identifier blockId, LeafSettingsEntry entry) {
-        return new BooleanToggleBuilder(RESET_TEXT, Text.translatable("config.fallingleaves.spawn_breaking_leaves"), entry.spawnBreakingLeaves)
+        return new BooleanToggleBuilder(RESET_TEXT, Text.translatable("config.fallingleaves2.spawn_breaking_leaves"), entry.spawnBreakingLeaves)
             .setDefaultValue(ConfigDefaults.spawnBreakingLeaves(blockId))
             .setSaveConsumer((Boolean value) -> {
                 entry.spawnBreakingLeaves = value;

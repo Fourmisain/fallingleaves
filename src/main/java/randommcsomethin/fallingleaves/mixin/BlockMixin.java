@@ -12,9 +12,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
 
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;
-import static randommcsomethin.fallingleaves.util.LeafUtil.trySpawnLeafAndSnowParticle;
+import static randommcsomethin.fallingleaves.util.LeafUtil.*;
 
 @Mixin(Block.class)
 public abstract class BlockMixin {
@@ -42,7 +43,16 @@ public abstract class BlockMixin {
             }
         }
 
-        trySpawnLeafAndSnowParticle(state, world, pos, random);
+        trySpawnSnowParticle(state, world, pos, random);
+
+        LeafSettingsEntry leafSettings = getLeafSettingsEntry(state);
+        if (leafSettings != null) {
+            float spawnChance = getModifiedSpawnChance(pos, state, leafSettings);
+
+            if (spawnChance != 0 && random.nextFloat() < spawnChance) {
+                spawnLeafParticles(1, false, state, world, pos, random, leafSettings);
+            }
+        }
     }
 
 }

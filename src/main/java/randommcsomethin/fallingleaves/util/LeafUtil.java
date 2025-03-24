@@ -3,14 +3,14 @@ package randommcsomethin.fallingleaves.util;
 import net.minecraft.block.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.client.particle.SpriteProvider;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.render.model.BlockModelPart;
+import net.minecraft.client.render.model.BlockStateModel;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteContents;
 import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleType;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.Identifier;
@@ -26,7 +26,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
 import randommcsomethin.fallingleaves.init.Leaves;
+import randommcsomethin.fallingleaves.mixin.LeavesBlockAccessor;
 import randommcsomethin.fallingleaves.mixin.NativeImageAccessor;
+import randommcsomethin.fallingleaves.mixin.ParticleManagerAccessor;
 import randommcsomethin.fallingleaves.mixin.SpriteContentsAccessor;
 import randommcsomethin.fallingleaves.seasons.Season;
 import randommcsomethin.fallingleaves.seasons.Seasons;
@@ -39,20 +41,35 @@ import java.util.stream.Collectors;
 
 import static randommcsomethin.fallingleaves.FallingLeavesClient.LOGGER;
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;
+import static randommcsomethin.fallingleaves.particle.ParticleImplementation.VANILLA;
 
 public class LeafUtil {
 
+    public static final Identifier TINTED_LEAVES_PARTICLE_ID = Identifier.ofVanilla("tinted_leaves");
     public static final Identifier CHERRY_LEAVES_PARTICLE_ID = Identifier.ofVanilla("cherry_leaves");
     public static final Identifier PALE_OAK_LEAVES_PARTICLE_ID = Identifier.ofVanilla("pale_oak_leaves");
 
     private static final Random renderRandom = Random.createLocal();
 
-    public static double getModifiedSpawnChance(BlockState state, LeafSettingsEntry leafSettings) {
-        double spawnChance = leafSettings.getSpawnChance();
+    public static SpriteProvider getSpriteProvider(Identifier spriteId) {
+        return ((ParticleManagerAccessor) MinecraftClient.getInstance().particleManager).getSpriteAwareFactories().get(spriteId);
+    }
+
+    public static float getModifiedSpawnChance(BlockPos pos, BlockState state, LeafSettingsEntry leafSettings) {
+        if (isInsideMinimalSpawnRadius(pos))
+            return 0;
+
+        if (!CONFIG.dropFromPlayerPlacedBlocks && state.contains(LeavesBlock.PERSISTENT) && state.get(LeavesBlock.PERSISTENT))
+            return 0;
+
+        // Every leaf block or leaf spawner should have a settings entry, but some blocks are considered leaves when they technically aren't
+        // E.g. terrestria:sakura_log can be "leaf-logged" - in that case, we simply ignore them
+        if (leafSettings == null)
+            return 0;
+
+        float spawnChance = leafSettings.getSpawnChance();
 
         if (Seasons.currentSeason == Season.FALL) {
-            // TODO this is a bit weird because some trees like Traverse's autumnal leaves already have boosted values
-            // double autumn, what does it mean?
             spawnChance *= CONFIG.fallSpawnRateFactor;
         } else if (Seasons.currentSeason == Season.WINTER) {
             spawnChance *= CONFIG.winterSpawnRateFactor;
@@ -67,39 +84,47 @@ public class LeafUtil {
         return spawnChance;
     }
 
-    public static void trySpawnLeafAndSnowParticle(BlockState state, World world, BlockPos pos, Random random) {
-        if (CONFIG.startingSpawnRadius > 0) {
-            assert MinecraftClient.getInstance().player != null; // guaranteed when called from randomDisplayTick
+    private static boolean isInsideMinimalSpawnRadius(BlockPos pos) {
+        if (CONFIG.startingSpawnRadius == 0) return false;
 
-            if (LeafUtil.getMaximumDistance(MinecraftClient.getInstance().player.getBlockPos(), pos) < CONFIG.startingSpawnRadius) {
-                return;
-            }
-        }
+        return getMaximumDistance(Objects.requireNonNull(MinecraftClient.getInstance().player).getBlockPos(), pos) < CONFIG.startingSpawnRadius;
+    }
 
-        // every leaf block or leaf spawner should have a settings entry
-        LeafSettingsEntry leafSettings = Objects.requireNonNull(getLeafSettingsEntry(state));
-        double spawnChance = LeafUtil.getModifiedSpawnChance(state, leafSettings);
+    public static void trySpawnSnowParticle(BlockState state, World world, BlockPos pos, Random random) {
+        if (isInsideMinimalSpawnRadius(pos)) return;
 
-        if (spawnChance != 0 && random.nextDouble() < spawnChance) {
-            spawnLeafParticles(1, false, state, world, pos, random, leafSettings);
-        }
-
-        // snow spawns independently from leaf particles (and the leaf block settings)
+        // snow spawns independently of leaf particles (and the leaf block settings)
         double snowSpawnChance = CONFIG.getSnowflakeSpawnChance();
         if (snowSpawnChance != 0 && random.nextDouble() < snowSpawnChance) {
-            spawnSnowParticles(1, false, state, world, pos, random, leafSettings);
+            spawnSnowParticles(1, false, state, world, pos, random);
         }
     }
 
     public static void spawnLeafParticles(int count, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random, LeafSettingsEntry leafSettings) {
         if (count == 0) return;
 
-        BlockStateParticleEffect params = new BlockStateParticleEffect(leafSettings.isConiferBlock ? Leaves.FALLING_CONIFER_LEAF : Leaves.FALLING_LEAF, state);
+        if (leafSettings.getImplementation() == VANILLA && state.getBlock() instanceof LeavesBlockAccessor leavesBlock) {
+            for (int i = 0; i < count; i++) {
+                // doesn't respect spawnInsideBlock
+                leavesBlock.callSpawnLeafParticle(world, pos, random);
+            }
 
-        spawnParticles(count, params, spawnInsideBlock, state, world, pos, random, leafSettings);
+            return;
+        }
+
+        var particleType = switch (leafSettings.getImplementation()) {
+            case CHERRY  -> Leaves.FALLING_CHERRY;
+            case CONIFER -> Leaves.FALLING_CONIFER_LEAF;
+	        case REGULAR -> Leaves.FALLING_LEAF;
+            case VANILLA -> Leaves.FALLING_LEAF; // Vanilla non-LeavesBlock
+        };
+
+        BlockStateParticleEffect params = new BlockStateParticleEffect(particleType, state);
+
+        spawnParticles(count, params, spawnInsideBlock, state, world, pos, random);
     }
 
-    public static void spawnSnowParticles(int count, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random, LeafSettingsEntry leafSettings) {
+    public static void spawnSnowParticles(int count, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random) {
         if (count == 0) return;
 
         boolean snowy = false;
@@ -129,10 +154,10 @@ public class LeafUtil {
 
         BlockStateParticleEffect params = new BlockStateParticleEffect(Leaves.FALLING_SNOW, state);
 
-        spawnParticles(count, params, spawnInsideBlock, state, world, pos, random, leafSettings);
+        spawnParticles(count, params, spawnInsideBlock, state, world, pos, random);
     }
 
-    public static void spawnParticles(int count, BlockStateParticleEffect params, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random, LeafSettingsEntry leafSettings) {
+    public static void spawnParticles(int count, BlockStateParticleEffect params, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random) {
         if (count == 0) return;
 
         for (int i = 0; i < count; i++) {
@@ -168,34 +193,45 @@ public class LeafUtil {
 
     public static double[] getBlockTextureColor(BlockState state, World world, BlockPos pos) {
         MinecraftClient client = MinecraftClient.getInstance();
-        BakedModel model = client.getBlockRenderManager().getModel(state);
+        BlockStateModel model = client.getBlockRenderManager().getModel(state);
 
         renderRandom.setSeed(state.getRenderingSeed(pos));
-        List<BakedQuad> quads = model.getQuads(state, Direction.DOWN, renderRandom);
+        List<BlockModelPart> parts = model.getParts(renderRandom);
 
-        Sprite sprite;
-        boolean shouldColor;
+        if (parts.size() > 1) {
+            LOGGER.debug("block state {} has {} parts: {}", state, parts.size(), parts);
+        }
 
-        // read data from the first bottom quad if possible
-        if (!quads.isEmpty()) {
-            boolean useFirstQuad = true;
+        Sprite sprite = null;
+        boolean shouldColor = false;
 
-            Identifier id = Registries.BLOCK.getId(state.getBlock());
-            if (id.getNamespace().equals("byg")) {
-                /*
-                 * some BYG leaves have their actual tinted leaf texture in an "overlay" that comes second, full list:
-                 * flowering_orchard_leaves, joshua_leaves, mahogany_leaves, maple_leaves, orchard_leaves,
-                 * rainbow_eucalyptus_leaves, ripe_joshua_leaves, ripe_orchard_leaves, willow_leaves
-                 */
-                useFirstQuad = false;
+        if (!parts.isEmpty()) {
+            BlockModelPart part = parts.getFirst();
+
+            // read data from the first bottom quad if possible
+            List<BakedQuad> quads = part.getQuads(Direction.DOWN);
+            if (!quads.isEmpty()) {
+                boolean useFirstQuad = true;
+
+                Identifier id = Registries.BLOCK.getId(state.getBlock());
+                if (id.getNamespace().equals("byg")) {
+                    /*
+                     * some BYG leaves have their actual tinted leaf texture in an "overlay" that comes second, full list:
+                     * flowering_orchard_leaves, joshua_leaves, mahogany_leaves, maple_leaves, orchard_leaves,
+                     * rainbow_eucalyptus_leaves, ripe_joshua_leaves, ripe_orchard_leaves, willow_leaves
+                     */
+                    useFirstQuad = false;
+                }
+
+                BakedQuad quad = quads.get(useFirstQuad ? 0 : quads.size() - 1);
+                sprite = quad.sprite();
+                shouldColor = quad.hasTint();
             }
+        }
 
-            BakedQuad quad = quads.get(useFirstQuad ? 0 : quads.size() - 1);
-            sprite = quad.getSprite();
-            shouldColor = quad.hasTint();
-        } else {
+        if (sprite == null) {
             // fall back to block breaking particle
-            sprite = model.getParticleSprite();
+            sprite = model.particleSprite();
             shouldColor = true;
         }
 

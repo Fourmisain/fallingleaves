@@ -6,12 +6,13 @@
   "plugin": "randommcsomethin.fallingleaves.init.MixinConfig",
   "client": [
     "BlockMixin",
-    "ParticleLeavesBlockMixin",
     "ClientPlayNetworkHandlerMixin",
     "GsonConfigSerializerMixin",
     "LeafTickMixin",
+    "LeavesBlockAccessor",
     "MinecraftClientMixin",
     "NativeImageAccessor",
+    "ParticleManagerAccessor",
     "ParticleManagerMixin",
     "SimpleSpriteProviderInvoker",
     "SpriteContentsAccessor"
