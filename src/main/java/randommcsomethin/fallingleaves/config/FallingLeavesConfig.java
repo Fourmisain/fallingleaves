@@ -31,9 +31,11 @@ public class FallingLeavesConfig implements ConfigData {
     public boolean enabled = true;
 
     @ConfigEntry.Category("fallingleaves.general")
+    @ConfigEntry.Gui.Tooltip
     public boolean alwaysUseVanillaParticles = false;
 
     @ConfigEntry.Category("fallingleaves.general")
+    @ConfigEntry.Gui.Tooltip
     public boolean useVanillaTextures = false;
 
     @ConfigEntry.Category("fallingleaves.general")

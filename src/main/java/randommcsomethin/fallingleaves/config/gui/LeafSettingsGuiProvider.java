@@ -105,6 +105,8 @@ public class LeafSettingsGuiProvider implements GuiProvider {
             .setSaveConsumer((ParticleImplementation value) -> {
                 entry.particleImplementation = value;
             })
+            .setEnumNameProvider(anEnum -> Text.translatable("config.fallingleaves2.particle_implementation." + anEnum.name()))
+            .setTooltip(Text.translatable("config.fallingleaves2.particle_implementation.@Tooltip"))
             .build();
     }
 
