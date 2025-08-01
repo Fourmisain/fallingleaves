@@ -1,4 +1,5 @@
 {
+  "modmenu.descriptionTranslation.fallingleaves": "轻柔的微风，在树叶间轻声呼唤，随着秋色飘落，在金色的回忆中旋转起舞（oiiaio）：最美不过谎言。",
   "text.autoconfig.fallingleaves.title": "Falling Leaves",
   "text.autoconfig.fallingleaves.option.enabled": "启用",
   "text.autoconfig.fallingleaves.option.leafSize": "落叶大小",
@@ -6,6 +7,8 @@
   "text.autoconfig.fallingleaves.option.leafLifespan.@Tooltip": "20 刻大约是 1 秒",
   "text.autoconfig.fallingleaves.option.leafSpawnRate": "落叶生成率",
   "text.autoconfig.fallingleaves.option.leafSpawnRate.@Tooltip": "随着时间的推移，有多少落叶生成",
+  "text.autoconfig.fallingleaves.option.cherrySpawnRate": "樱花花瓣生成率",
+  "text.autoconfig.fallingleaves.option.cherrySpawnRate.@Tooltip": "以10%的倍数改变游戏原版樱花花瓣的生成率，即:\n5 = 50%（半速生成）\n10 = 100%（原始生成率）\n20 = 200%（双倍生成率）",
   "text.autoconfig.fallingleaves.option.coniferLeafSpawnRate": "针叶树叶生成率",
   "text.autoconfig.fallingleaves.option.coniferLeafSpawnRate.@Tooltip": "随着时间的推移，有多少针叶树叶生成",
   "text.autoconfig.fallingleaves.option.snowflakeSpawnRate": "雪花生成率",
@@ -31,10 +34,13 @@
   "text.autoconfig.fallingleaves.option.maxDecayLeaves": "腐烂的落叶最大生成数",
   "text.autoconfig.fallingleaves.option.maxDecayLeaves.@Tooltip[0]": "当一个树叶方块腐烂/变成空气时，会产生一些叶子。",
   "text.autoconfig.fallingleaves.option.maxDecayLeaves.@Tooltip[1]": "只在单人游戏中有效。",
+  "text.autoconfig.fallingleaves.option.registerParticles": "注册树叶粒子",
+  "text.autoconfig.fallingleaves.option.registerParticles.@Tooltip": "允许在单人游戏中使用 /particle 命令。\n当托管局域网服务器（例如通过Essential）时，如果客户端没有安装“Falling Leaves”MOD，可能会出现问题。\n更改此设置需要重新启动游戏。",
   "text.autoconfig.fallingleaves.category.fallingleaves.general": "通用",
   "text.autoconfig.fallingleaves.category.fallingleaves.leafsettings": "树叶方块设置",
   "text.autoconfig.fallingleaves.category.fallingleaves.experimental": "实验性",
   "config.fallingleaves.spawn_rate_factor": "生成率乘数",
   "config.fallingleaves.spawn_rate_factor.@Tooltip": "0% 关闭生成，100% 表示基本生成率",
-  "config.fallingleaves.is_conifer": "这些是针叶树的树叶吗？"
+  "config.fallingleaves.is_conifer": "这些是针叶树的树叶吗？",
+  "config.fallingleaves.spawn_breaking_leaves": "当这个方块被击中或腐烂时需要掉落一些树叶吗？"
 }

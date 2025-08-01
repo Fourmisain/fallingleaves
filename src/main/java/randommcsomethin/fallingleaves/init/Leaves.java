@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.particle.ParticleFactory;
+import net.minecraft.client.particle.ParticleManager.SimpleSpriteProvider;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleType;
@@ -25,6 +26,7 @@ import randommcsomethin.fallingleaves.particle.FallingLeafParticle;
 import randommcsomethin.fallingleaves.util.LeafUtil;
 import randommcsomethin.fallingleaves.util.TextureCache;
 
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -40,6 +42,8 @@ public class Leaves {
 
     public static final Map<ParticleType<BlockStateParticleEffect>, Identifier> LEAVES;
     public static final Map<ParticleType<BlockStateParticleEffect>, ParticleFactory<BlockStateParticleEffect>> FACTORIES = new IdentityHashMap<>();
+
+    public static final Map<Identifier, SimpleSpriteProvider> CUSTOM_LEAVES = new HashMap<>();
 
     private static boolean preLoadedRegisteredLeafBlocks = false;
 
