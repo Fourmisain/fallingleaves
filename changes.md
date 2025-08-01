@@ -1,3 +1,9 @@
+### 2.0.1
+
+add Argentine Spanish translation (es_ar), thanks to Texaliuz!
+
+### 2.0.0
+
 Now that Vanilla has their own implementation of falling leaves, we encourage everyone to try playing without this mod and see how you like it!
 
 If you feel the need to be able to change spawn rates, dislike evergreens and conifer trees dropping regular leaves, or want any of the other features like wind back:  
