@@ -3,6 +3,7 @@ package randommcsomethin.fallingleaves.particle;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.particle.*;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.fluid.FluidState;
@@ -13,6 +14,8 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
+import org.jetbrains.annotations.Nullable;
 import randommcsomethin.fallingleaves.init.Leaves;
 import randommcsomethin.fallingleaves.util.LeafUtil;
 import randommcsomethin.fallingleaves.util.Wind;
@@ -24,7 +27,7 @@ import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 import static randommcsomethin.fallingleaves.util.LeafUtil.CHERRY_LEAVES_PARTICLE_ID;
 import static randommcsomethin.fallingleaves.util.LeafUtil.TINTED_LEAVES_PARTICLE_ID;
 
-public class FallingLeafParticle extends SpriteBillboardParticle {
+public class FallingLeafParticle extends BillboardParticle {
 
     public static final float TAU = (float)(2 * Math.PI); // 1 rotation
 
@@ -40,9 +43,8 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
     protected boolean inWater = false;
     protected boolean stuckInGround = false;
 
-    public FallingLeafParticle(ParticleType<BlockStateParticleEffect> particleType, ClientWorld clientWorld, double x, double y, double z, double r, double g, double b, SpriteProvider provider) {
-        super(clientWorld, x, y, z, 0.0, 0.0, 0.0);
-        this.setSprite(provider);
+    public FallingLeafParticle(ParticleType<BlockStateParticleEffect> particleType, ClientWorld clientWorld, double x, double y, double z, double r, double g, double b, Sprite sprite) {
+        super(clientWorld, x, y, z, 0.0, 0.0, 0.0, sprite);
 
         if (particleType == Leaves.FALLING_CHERRY) {
             this.gravityStrength = 0.0175f + random.nextFloat() * 0.0050f;
@@ -76,7 +78,7 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
             this.maxRotateSpeed = (random.nextBoolean() ? -1 : 1) * (0.1f + 2.4f * random.nextFloat()) * TAU / 20f;
         }
 
-        this.angle = this.lastAngle = random.nextFloat() * TAU;
+        this.zRotation = this.lastZRotation = random.nextFloat() * TAU;
 
         if (particleType == Leaves.FALLING_CHERRY) {
             this.scale = CONFIG.getLeafSize() / 2.0f;
@@ -93,7 +95,7 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
         lastX = x;
         lastY = y;
         lastZ = z;
-        lastAngle = angle;
+        lastZRotation = zRotation;
 
         age++;
 
@@ -160,7 +162,7 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
             if (!onGround) {
                 // spin when in the air
                 rotateTime = Math.min(rotateTime + 1, maxRotateTime);
-                angle += (rotateTime / (float) maxRotateTime) * maxRotateSpeed;
+                zRotation += (rotateTime / (float) maxRotateTime) * maxRotateSpeed;
             } else {
                 rotateTime = 0;
 
@@ -231,14 +233,14 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
     }
 
     @Override
-    public ParticleTextureSheet getType() {
-        return ParticleTextureSheet.PARTICLE_SHEET_TRANSLUCENT;
+    protected RenderType getRenderType() {
+        return BillboardParticle.RenderType.PARTICLE_ATLAS_TRANSLUCENT;
     }
 
     @Environment(EnvType.CLIENT)
     public record BlockStateFactory(SpriteProvider spriteProvider) implements ParticleFactory<BlockStateParticleEffect> {
         @Override
-        public Particle createParticle(BlockStateParticleEffect parameters, ClientWorld world, double x, double y, double z, double unusedX, double unusedY, double unusedZ) {
+        public Particle createParticle(BlockStateParticleEffect parameters, ClientWorld world, double x, double y, double z, double unusedX, double unusedY, double unusedZ, Random random) {
             double r, g, b;
 
             var particleType = parameters.getType();
@@ -265,7 +267,9 @@ public class FallingLeafParticle extends SpriteBillboardParticle {
                 b = color[2];
             }
 
-            return new FallingLeafParticle(particleType, world, x, y, z, r, g, b, customSpriteProvider != null ? customSpriteProvider : spriteProvider);
+            Sprite sprite = (customSpriteProvider != null ? customSpriteProvider : spriteProvider).getSprite(random);
+
+            return new FallingLeafParticle(particleType, world, x, y, z, r, g, b, sprite);
         }
     }
 

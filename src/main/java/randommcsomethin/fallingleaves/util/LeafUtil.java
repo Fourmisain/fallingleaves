@@ -28,7 +28,7 @@ import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
 import randommcsomethin.fallingleaves.init.Leaves;
 import randommcsomethin.fallingleaves.mixin.LeavesBlockAccessor;
 import randommcsomethin.fallingleaves.mixin.NativeImageAccessor;
-import randommcsomethin.fallingleaves.mixin.ParticleManagerAccessor;
+import randommcsomethin.fallingleaves.mixin.ParticleSpriteManagerAccessor;
 import randommcsomethin.fallingleaves.mixin.SpriteContentsAccessor;
 import randommcsomethin.fallingleaves.seasons.Season;
 import randommcsomethin.fallingleaves.seasons.Seasons;
@@ -52,7 +52,7 @@ public class LeafUtil {
     private static final Random renderRandom = Random.createLocal();
 
     public static SpriteProvider getSpriteProvider(Identifier spriteId) {
-        return ((ParticleManagerAccessor) MinecraftClient.getInstance().particleManager).getSpriteAwareFactories().get(spriteId);
+        return ((ParticleSpriteManagerAccessor) MinecraftClient.getInstance().particleManager).getSpriteAwareParticleFactories().get(spriteId);
     }
 
     public static float getModifiedSpawnChance(BlockPos pos, BlockState state, LeafSettingsEntry leafSettings) {
@@ -115,7 +115,7 @@ public class LeafUtil {
         var particleType = switch (leafSettings.getImplementation()) {
             case CHERRY  -> Leaves.FALLING_CHERRY;
             case CONIFER -> Leaves.FALLING_CONIFER_LEAF;
-	        case REGULAR -> Leaves.FALLING_LEAF;
+            case REGULAR -> Leaves.FALLING_LEAF;
             case VANILLA -> Leaves.FALLING_LEAF; // Vanilla non-LeavesBlock
         };
 
@@ -175,18 +175,18 @@ public class LeafUtil {
                     continue;
             }
 
-            spawnParticle(params, x, y, z);
+            spawnParticle(params, x, y, z, random);
         }
     }
 
-    public static void spawnParticle(BlockStateParticleEffect params, double x, double y, double z) {
+    public static void spawnParticle(BlockStateParticleEffect params, double x, double y, double z, Random random) {
         MinecraftClient client = MinecraftClient.getInstance();
 
         // note: doesn't respect shouldAlwaysSpawn, though we set it to true anyway
         if (CONFIG.registerParticles) {
             client.particleManager.addParticle(params, x, y, z, 0, 0, 0);
         } else {
-            Particle particle = Leaves.FACTORIES.get(params.getType()).createParticle(params, client.world, x, y, z, 0, 0, 0);
+            Particle particle = Leaves.FACTORIES.get(params.getType()).createParticle(params, client.world, x, y, z, 0, 0, 0, random);
             client.particleManager.addParticle(particle);
         }
     }

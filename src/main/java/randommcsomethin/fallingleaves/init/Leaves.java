@@ -5,9 +5,10 @@ import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.particle.ParticleFactory;
-import net.minecraft.client.particle.ParticleManager.SimpleSpriteProvider;
+import net.minecraft.client.particle.ParticleSpriteManager.SimpleSpriteProvider;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleType;
@@ -15,6 +16,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
+import net.minecraft.resource.SynchronousResourceReloader;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
@@ -80,7 +82,7 @@ public class Leaves {
     }
 
     private static void registerReloadListener() {
-        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+        ResourceLoader.get(ResourceType.CLIENT_RESOURCES).registerReloader(id("resource_reload_listener"), new SynchronousResourceReloader() {
             @Override
             public void reload(ResourceManager resourceManager) {
                 // This is called before the block tags are usable, so we'll get an incomplete list of leaf blocks
@@ -94,18 +96,13 @@ public class Leaves {
 
                 TextureCache.INST.clear();
             }
-
-            @Override
-            public Identifier getFabricId() {
-                return id("resource_reload_listener");
-            }
         });
     }
 
     /** Spawn between 0 and 3 leaves on hitting a leaf block */
     private static void registerAttackBlockLeaves() {
         AttackBlockCallback.EVENT.register((PlayerEntity player, World world, Hand hand, BlockPos pos, Direction direction) -> {
-            if (!CONFIG.enabled || !CONFIG.leavesOnBlockHit || !world.isClient)
+            if (!CONFIG.enabled || !CONFIG.leavesOnBlockHit || !world.isClient())
                 return ActionResult.PASS;
 
             BlockState state = world.getBlockState(pos);

@@ -12,8 +12,9 @@
     "LeavesBlockAccessor",
     "MinecraftClientMixin",
     "NativeImageAccessor",
-    "ParticleManagerAccessor",
     "ParticleManagerMixin",
+    "ParticleSpriteManagerAccessor",
+    "ParticleSpriteManagerMixin",
     "SimpleSpriteProviderInvoker",
     "SpriteContentsAccessor"
   ],

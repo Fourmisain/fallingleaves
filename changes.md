@@ -1,3 +1,7 @@
+### 2.0.2
+
+port to 1.21.9
+
 ### 2.0.1
 
 add Argentine Spanish translation (es_ar), thanks to Texaliuz!
