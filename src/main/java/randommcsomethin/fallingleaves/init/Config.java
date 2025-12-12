@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonParseException;
 import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.AutoConfigClient;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
@@ -61,7 +62,7 @@ public class Config {
             Configurator.setLevel(LOGGER.getName(), Level.DEBUG);
         }
 
-        AutoConfig.getGuiRegistry(FallingLeavesConfig.class).registerPredicateProvider(
+        AutoConfigClient.getGuiRegistry(FallingLeavesConfig.class).registerPredicateProvider(
             new LeafSettingsGuiProvider(),
             field -> field.getName().equals("leafSettings")
         );
@@ -70,10 +71,10 @@ public class Config {
             new StringSetGuiProvider<>(Identifier.class, Identifier::of),
             new StringSetGuiProvider<>(String.class, s -> s)
         )) {
-            AutoConfig.getGuiRegistry(FallingLeavesConfig.class).registerPredicateProvider(guiProvider, guiProvider.getPredicate());
+            AutoConfigClient.getGuiRegistry(FallingLeavesConfig.class).registerPredicateProvider(guiProvider, guiProvider.getPredicate());
         }
 
-        AutoConfig.getGuiRegistry(FallingLeavesConfig.class).registerTypeProvider(
+        AutoConfigClient.getGuiRegistry(FallingLeavesConfig.class).registerTypeProvider(
             new IdentifierGuiProvider(),
             Identifier.class
         );
