@@ -95,54 +95,52 @@ def toList = (String s) -> s.split(',').collect { it.trim() }
 def gameVersionList = toList(project.game_version_list)
 
 modrinth {
-    def MODRINTH_TOKEN = System.getenv('MODRINTH_TOKEN')
-    if (MODRINTH_TOKEN != null) {
-        token = MODRINTH_TOKEN
-        projectId = project.modrinth_id
-        versionName = project.mod_version
-        versionNumber = project.version
-        versionType = 'release'
-        uploadFile = remapJar
-        changelog = changesMd
-        gameVersions = gameVersionList
-        loaders = ['fabric']
-        dependencies {
-            toList(project.modrinth_dependencies).each { required.project(it) }
-            toList(project.modrinth_optional_dependencies).each { optional.project(it) }
-        }
+    token = System.getenv('MODRINTH_TOKEN')
+    projectId = project.modrinth_id
+    versionName = project.mod_version
+    versionNumber = project.version
+    versionType = 'release'
+    uploadFile = remapJar
+    changelog = changesMd
+    gameVersions = gameVersionList
+    loaders = ['fabric']
+    dependencies {
+        toList(project.modrinth_dependencies).each { required.project(it) }
+        toList(project.modrinth_optional_dependencies).each { optional.project(it) }
     }
 }
 
 tasks.modrinth.dependsOn("build")
 
 curseforge {
-    def CURSEFORGE_TOKEN = System.getenv('CURSEFORGE_TOKEN')
-    if (CURSEFORGE_TOKEN != null) {
-        apiKey = CURSEFORGE_TOKEN
-        project {
-            id = project.curseforge_id
-            releaseType = 'release'
-            changelogType = 'markdown'
-            changelog = changesMd
+    def token = System.getenv("CURSEFORGE_TOKEN")
+    if (token != null) {
+        apiKey = token
+    }
 
-            addGameVersion 'Fabric'
-            gameVersionList.each { addGameVersion(it) }
+    project {
+        id = project.curseforge_id
+        releaseType = 'release'
+        changelogType = 'markdown'
+        changelog = changesMd
 
-            relations {
-                toList(project.curseforge_dependencies).each { requiredDependency(it) }
-                toList(project.curseforge_optional_dependencies).each { optionalDependency(it) }
-            }
-            mainArtifact(remapJar.archiveFile.get().asFile) {
-                displayName = "${project.mod_version} [${versionRange(gameVersionList)}]"
-            }
-            afterEvaluate {
-                uploadTask.dependsOn('build')
-            }
+        addGameVersion 'Fabric'
+        gameVersionList.each { addGameVersion(it) }
+
+        relations {
+            toList(project.curseforge_dependencies).each { requiredDependency(it) }
+            toList(project.curseforge_optional_dependencies).each { optionalDependency(it) }
         }
-        options {
-            forgeGradleIntegration = false
-            javaVersionAutoDetect = false
+        mainArtifact(remapJar.archiveFile.get().asFile) {
+            displayName = "${project.mod_version} [${versionRange(gameVersionList)}]"
         }
+        afterEvaluate {
+            uploadTask.dependsOn('build')
+        }
+    }
+    options {
+        forgeGradleIntegration = false
+        javaVersionAutoDetect = false
     }
 }
 
