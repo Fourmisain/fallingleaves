@@ -1,3 +1,9 @@
+### 2.0.4
+
+port to 26.1
+
+Fabric Seasons and Serene Seasons compatibility has been temporarily removed and needs to be re-added once they release for 26.1 as well
+
 ### 2.0.3
 
 port to 1.21.11
