@@ -1,6 +1,6 @@
 package randommcsomethin.fallingleaves.init;
 
-import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
@@ -75,12 +75,12 @@ public class Leaves {
     private static void registerLeafParticles() {
         for (var entry : LEAVES.entrySet()) {
             Registry.register(BuiltInRegistries.PARTICLE_TYPE, entry.getValue(), entry.getKey());
-            ParticleFactoryRegistry.getInstance().register(entry.getKey(), FallingLeafParticle.BlockStateFactory::new);
+            ParticleProviderRegistry.getInstance().register(entry.getKey(), FallingLeafParticle.BlockStateFactory::new);
         }
     }
 
     private static void registerReloadListener() {
-        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloader(id("resource_reload_listener"), new ResourceManagerReloadListener() {
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(id("resource_reload_listener"), new ResourceManagerReloadListener() {
             @Override
             public void onResourceManagerReload(ResourceManager resourceManager) {
                 // This is called before the block tags are usable, so we'll get an incomplete list of leaf blocks
@@ -111,24 +111,24 @@ public class Leaves {
                     // binomial distribution - extremes (0 or 3 leaves) are less likely
                     int count = 0;
                     for (int i = 0; i < 3; i++) {
-                        if (level.random.nextBoolean()) {
+                        if (level.getRandom().nextBoolean()) {
                             count++;
                         }
                     }
 
-                    LeafUtil.spawnLeafParticles(count, false, state, level, pos, level.random, leafSettings);
+                    LeafUtil.spawnLeafParticles(count, false, state, level, pos, level.getRandom(), leafSettings);
                 }
 
                 // spawn a bit of snow too
                 if (CONFIG.getSnowflakeSpawnChance() != 0) {
                     int snowCount = 0;
                     for (int i = 0; i < 6; i++) {
-                        if (level.random.nextBoolean()) {
+                        if (level.getRandom().nextBoolean()) {
                             snowCount++;
                         }
                     }
 
-                    LeafUtil.spawnSnowParticles(snowCount, false, state, level, pos, level.random);
+                    LeafUtil.spawnSnowParticles(snowCount, false, state, level, pos, level.getRandom());
                 }
             }
 

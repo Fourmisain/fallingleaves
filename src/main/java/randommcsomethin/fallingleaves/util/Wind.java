@@ -80,7 +80,7 @@ public class Wind {
             originalState = null;
         }
 
-        boolean isRaining = level.getLevelData().isRaining();
+        boolean isRaining = level.isRaining();
         boolean isThundering = level.isThundering();
         boolean weatherChanged = wasRaining != isRaining || wasThundering != isThundering;
 

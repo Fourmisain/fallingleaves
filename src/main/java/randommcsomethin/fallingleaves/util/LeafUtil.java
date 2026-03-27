@@ -2,13 +2,14 @@ package randommcsomethin.fallingleaves.util;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.SpriteSet;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockModelPart;
-import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -27,13 +28,11 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
 import randommcsomethin.fallingleaves.init.Leaves;
-import randommcsomethin.fallingleaves.mixin.LeavesBlockAccessor;
-import randommcsomethin.fallingleaves.mixin.NativeImageAccessor;
-import randommcsomethin.fallingleaves.mixin.ParticleSpriteManagerAccessor;
-import randommcsomethin.fallingleaves.mixin.SpriteContentsAccessor;
+import randommcsomethin.fallingleaves.mixin.*;
 import randommcsomethin.fallingleaves.seasons.Season;
 import randommcsomethin.fallingleaves.seasons.Seasons;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,7 +49,7 @@ public class LeafUtil {
     public static final Identifier CHERRY_LEAVES_PARTICLE_ID = Identifier.withDefaultNamespace("cherry_leaves");
     public static final Identifier PALE_OAK_LEAVES_PARTICLE_ID = Identifier.withDefaultNamespace("pale_oak_leaves");
 
-    private static final RandomSource renderRandom = RandomSource.createNewThreadLocalInstance();
+    private static final RandomSource renderRandom = RandomSource.createThreadLocalInstance();
 
     public static SpriteSet getSpriteProvider(Identifier spriteId) {
         return ((ParticleSpriteManagerAccessor) Minecraft.getInstance().particleEngine).getSpriteSets().get(spriteId);
@@ -192,12 +191,22 @@ public class LeafUtil {
         }
     }
 
-    public static double[] getBlockTextureColor(BlockState state, Level level, BlockPos pos) {
+    public static double[] getBlockTextureColor(BlockState state, ClientLevel level, BlockPos pos) {
         Minecraft client = Minecraft.getInstance();
-        BlockStateModel model = client.getBlockRenderer().getBlockModel(state);
+        var blockModel = client.getModelManager().getBlockModelSet().get(state);
+
+        BlockStateModel model;
+        if (blockModel instanceof BlockStateModelWrapperAccessor wrapper) {
+            model = wrapper.getModel();
+        } else {
+            LOGGER.warn("unknown block model class: {}", blockModel.getClass());
+            return new double[] {1.0, 0.1, 0.6}; // deep pink, so we know what's up
+        }
 
         renderRandom.setSeed(state.getSeed(pos));
-        List<BlockModelPart> parts = model.collectParts(renderRandom);
+
+        List<BlockStateModelPart> parts = new ArrayList<>();
+        model.collectParts(renderRandom, parts);
 
         if (parts.size() > 1) {
             LOGGER.debug("block state {} has {} parts: {}", state, parts.size(), parts);
@@ -207,7 +216,7 @@ public class LeafUtil {
         boolean shouldColor = false;
 
         if (!parts.isEmpty()) {
-            BlockModelPart part = parts.getFirst();
+            BlockStateModelPart part = parts.getFirst();
 
             // read data from the first bottom quad if possible
             List<BakedQuad> quads = part.getQuads(Direction.DOWN);
@@ -225,21 +234,21 @@ public class LeafUtil {
                 }
 
                 BakedQuad quad = quads.get(useFirstQuad ? 0 : quads.size() - 1);
-                sprite = quad.sprite();
-                shouldColor = quad.isTinted();
+                sprite = quad.materialInfo().sprite();
+                shouldColor = quad.materialInfo().isTinted();
             }
         }
 
         if (sprite == null) {
             // fall back to block breaking particle
-            sprite = model.particleIcon();
+            sprite = model.particleMaterial().sprite();
             shouldColor = true;
         }
 
         SpriteContents spriteContents = sprite.contents();
         Identifier spriteId = spriteContents.name();
         NativeImage texture = ((SpriteContentsAccessor) spriteContents).getByMipLevel()[0]; // directly extract texture
-        int blockColor = (shouldColor ? client.getBlockColors().getColor(state, level, pos, 0) : -1);
+        int blockColor = (shouldColor ? level.getClientLeafTintColor(pos) : -1);
 
         return calculateLeafColor(spriteId, texture, blockColor);
     }

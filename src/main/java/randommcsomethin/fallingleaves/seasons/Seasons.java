@@ -14,11 +14,12 @@ public class Seasons {
 	public static void tick(ClientLevel level) {
 		Season newSeason = null;
 
-		if (FabricLoader.getInstance().isModLoaded("seasons")) {
-			newSeason = FabricSeasonsCompat.convertSeason(FabricSeasons.getCurrentSeason());
-		} else if (FabricLoader.getInstance().isModLoaded("sereneseasons")) {
-			newSeason = SereneSeasonsCompat.convertSeason(SeasonHelper.getSeasonState(level).getSeason());
-		}
+		// TODO
+//		if (FabricLoader.getInstance().isModLoaded("seasons")) {
+//			newSeason = FabricSeasonsCompat.convertSeason(FabricSeasons.getCurrentSeason());
+//		} else if (FabricLoader.getInstance().isModLoaded("sereneseasons")) {
+//			newSeason = SereneSeasonsCompat.convertSeason(SeasonHelper.getSeasonState(level).getSeason());
+//		}
 
 		if (currentSeason != newSeason) {
 			FallingLeavesClient.LOGGER.debug("changed season {} -> {}", currentSeason, newSeason);

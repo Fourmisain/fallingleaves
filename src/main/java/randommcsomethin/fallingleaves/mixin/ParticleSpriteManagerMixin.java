@@ -75,9 +75,9 @@ public abstract class ParticleSpriteManagerMixin {
 
     // may be replaced with ModifyExpressionValue + ModifyArgs to get ReloadResult.id() (which is a local class that can't be accesswidened)
     @WrapOperation(
-        method = "method_74295", // last lambda inside reload, forEach(reloadResult -> ...)
+        method = "lambda$reload$5", // last lambda inside reload, forEach(reloadResult -> ...)
         at = @At(
-            // spriteAwareFactories.get(reloadResult.id()))
+            // spriteSets.get(arg.id())
             value = "INVOKE",
             target = "Ljava/util/Map;get(Ljava/lang/Object;)Ljava/lang/Object;",
             ordinal = 0

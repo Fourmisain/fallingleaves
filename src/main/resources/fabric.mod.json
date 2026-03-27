@@ -29,10 +29,10 @@
     "fallingleaves.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.15",
+    "fabricloader": "${fabric_loader_version_range}",
     "fabric-api": "*",
     "minecraft": "${game_version_range}",
-    "cloth-config": ">=10.0.0",
+    "cloth-config": "*",
     "java": ">=${java_version}"
   }
 }

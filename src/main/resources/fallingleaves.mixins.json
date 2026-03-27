@@ -6,6 +6,7 @@
   "plugin": "randommcsomethin.fallingleaves.init.MixinConfig",
   "client": [
     "BlockMixin",
+    "BlockStateModelWrapperAccessor",
     "ClientPlayNetworkHandlerMixin",
     "GsonConfigSerializerMixin",
     "LeafTickMixin",

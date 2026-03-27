@@ -123,22 +123,22 @@ public abstract class LeafTickMixin {
                 // binomial distribution - extremes are less likely
                 int count = 0;
                 for (int i = 0; i < CONFIG.maxDecayLeaves; i++) {
-                    if (clientLevel.random.nextBoolean()) {
+                    if (clientLevel.getRandom().nextBoolean()) {
                         count++;
                     }
                 }
 
-                LeafUtil.spawnLeafParticles(count, true, state, clientLevel, pos, clientLevel.random, leafSettings);
+                LeafUtil.spawnLeafParticles(count, true, state, clientLevel, pos, clientLevel.getRandom(), leafSettings);
             }
 
             int snowCount = 0;
             for (int i = 0; i < 2*CONFIG.maxDecayLeaves; i++) {
-                if (clientLevel.random.nextBoolean()) {
+                if (clientLevel.getRandom().nextBoolean()) {
                     snowCount++;
                 }
             }
 
-            LeafUtil.spawnSnowParticles(snowCount, true, state, clientLevel, pos, clientLevel.random);
+            LeafUtil.spawnSnowParticles(snowCount, true, state, clientLevel, pos, clientLevel.getRandom());
         });
     }
 
