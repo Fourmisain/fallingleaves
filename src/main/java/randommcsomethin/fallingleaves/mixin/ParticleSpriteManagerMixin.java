@@ -7,12 +7,12 @@ import com.llamalad7.mixinextras.sugar.Local;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.particle.ParticleFactory;
-import net.minecraft.client.particle.ParticleSpriteManager;
-import net.minecraft.client.particle.ParticleSpriteManager.SimpleSpriteProvider;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.particle.ParticleProvider;
+import net.minecraft.client.particle.ParticleResources;
+import net.minecraft.client.particle.ParticleResources.MutableSpriteSet;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -30,27 +30,27 @@ import static randommcsomethin.fallingleaves.FallingLeavesClient.MOD_ID;
 import static randommcsomethin.fallingleaves.init.Leaves.FACTORIES;
 
 @Environment(EnvType.CLIENT)
-@Mixin(value = ParticleSpriteManager.class, priority = 1010) // after Fabric API
+@Mixin(value = ParticleResources.class, priority = 1010) // after Fabric API
 public abstract class ParticleSpriteManagerMixin {
 
     @Shadow @Final
-    private Map<Identifier, SimpleSpriteProvider> spriteAwareParticleFactories;
+    private Map<Identifier, MutableSpriteSet> spriteSets;
 
     @Shadow @Final
-    private Int2ObjectMap<ParticleFactory<?>> particleFactories;
+    private Int2ObjectMap<ParticleProvider<?>> providers;
 
     @SuppressWarnings("unchecked")
-    @Inject(method = "init", at = @At("RETURN"))
+    @Inject(method = "registerProviders", at = @At("RETURN"))
     public void registerLeafFactories(CallbackInfo ci) {
         for (var entry : Leaves.LEAVES.entrySet()) {
             var type = entry.getKey();
             var id = entry.getValue();
 
-            var particleFactory = (ParticleFactory<BlockStateParticleEffect>) particleFactories.get(Registries.PARTICLE_TYPE.getRawId(type));
+            var particleFactory = (ParticleProvider<BlockParticleOption>) providers.get(BuiltInRegistries.PARTICLE_TYPE.getId(type));
 
             if (particleFactory == null) {
                 var spriteProvider = SimpleSpriteProviderInvoker.init();
-                spriteAwareParticleFactories.put(id, spriteProvider);
+                spriteSets.put(id, spriteProvider);
                 particleFactory = new FallingLeafParticle.BlockStateFactory(spriteProvider);
             }
 
@@ -58,7 +58,7 @@ public abstract class ParticleSpriteManagerMixin {
         }
     }
 
-    @ModifyExpressionValue(method = "load", at = @At(value = "INVOKE", target = "Ljava/util/Map;containsKey(Ljava/lang/Object;)Z"))
+    @ModifyExpressionValue(method = "loadParticleDescription", at = @At(value = "INVOKE", target = "Ljava/util/Map;containsKey(Ljava/lang/Object;)Z"))
     public boolean allowCustomSprites(boolean original, @Local(argsOnly = true) Identifier id) {
         // runs on worker thread
         if (id.getNamespace().equals(MOD_ID) && id.getPath().startsWith("block/"))

@@ -1,6 +1,6 @@
 package randommcsomethin.fallingleaves.config;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public class LeafSettingsEntryV1 {
     public double spawnRateFactor; // won't be migrated

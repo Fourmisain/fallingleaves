@@ -1,8 +1,8 @@
 package randommcsomethin.fallingleaves.util;
 
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import randommcsomethin.fallingleaves.math.SmoothNoise;
 import randommcsomethin.fallingleaves.math.TriangularDistribution;
 
@@ -62,10 +62,10 @@ public class Wind {
         });
     }
 
-    protected static void tickState(ClientWorld world) {
+    protected static void tickState(ClientLevel level) {
         --stateDuration;
 
-        Identifier dimension = world.getRegistryKey().getValue();
+        Identifier dimension = level.dimension().identifier();
 
         if (!CONFIG.windEnabled || CONFIG.windlessDimensions.contains(dimension)) {
             // override state to calm when there is no wind
@@ -80,8 +80,8 @@ public class Wind {
             originalState = null;
         }
 
-        boolean isRaining = world.getLevelProperties().isRaining();
-        boolean isThundering = world.isThundering();
+        boolean isRaining = level.getLevelData().isRaining();
+        boolean isThundering = level.isThundering();
         boolean weatherChanged = wasRaining != isRaining || wasThundering != isThundering;
 
         if (weatherChanged || stateDuration <= 0) {
@@ -101,8 +101,8 @@ public class Wind {
         wasThundering = isThundering;
     }
 
-    public static void tick(ClientWorld world) {
-        tickState(world);
+    public static void tick(ClientLevel level) {
+        tickState(level);
 
         velocityNoise.tick();
         directionTrendNoise.tick();
@@ -112,7 +112,7 @@ public class Wind {
         float direction = directionTrendNoise.getLerp() + directionNoise.getNoise();
 
         // calculate wind velocity (in blocks / tick)
-        windX = strength * MathHelper.cos(direction);
-        windZ = strength * MathHelper.sin(direction);
+        windX = strength * Mth.cos(direction);
+        windZ = strength * Mth.sin(direction);
     }
 }

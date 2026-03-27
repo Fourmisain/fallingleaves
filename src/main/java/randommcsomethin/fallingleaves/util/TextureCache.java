@@ -1,6 +1,6 @@
 package randommcsomethin.fallingleaves.util;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 import java.util.Arrays;
 import java.util.HashMap;

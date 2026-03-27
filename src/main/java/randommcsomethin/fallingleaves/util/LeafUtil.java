@@ -1,27 +1,28 @@
 package randommcsomethin.fallingleaves.util;
 
-import net.minecraft.block.*;
-import net.minecraft.client.MinecraftClient;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.SpriteProvider;
-import net.minecraft.client.render.model.BakedQuad;
-import net.minecraft.client.render.model.BlockModelPart;
-import net.minecraft.client.render.model.BlockStateModel;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.SpriteContents;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3i;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.village.VillagerType;
-import net.minecraft.world.Heightmap;
-import net.minecraft.world.World;
+import net.minecraft.client.particle.SpriteSet;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.BlockModelPart;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.renderer.texture.SpriteContents;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Vec3i;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.npc.villager.VillagerType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.MemoryUtil;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
@@ -45,21 +46,21 @@ import static randommcsomethin.fallingleaves.particle.ParticleImplementation.VAN
 
 public class LeafUtil {
 
-    public static final Identifier TINTED_LEAVES_PARTICLE_ID = Identifier.ofVanilla("tinted_leaves");
-    public static final Identifier CHERRY_LEAVES_PARTICLE_ID = Identifier.ofVanilla("cherry_leaves");
-    public static final Identifier PALE_OAK_LEAVES_PARTICLE_ID = Identifier.ofVanilla("pale_oak_leaves");
+    public static final Identifier TINTED_LEAVES_PARTICLE_ID = Identifier.withDefaultNamespace("tinted_leaves");
+    public static final Identifier CHERRY_LEAVES_PARTICLE_ID = Identifier.withDefaultNamespace("cherry_leaves");
+    public static final Identifier PALE_OAK_LEAVES_PARTICLE_ID = Identifier.withDefaultNamespace("pale_oak_leaves");
 
-    private static final Random renderRandom = Random.createLocal();
+    private static final RandomSource renderRandom = RandomSource.createNewThreadLocalInstance();
 
-    public static SpriteProvider getSpriteProvider(Identifier spriteId) {
-        return ((ParticleSpriteManagerAccessor) MinecraftClient.getInstance().particleManager).getSpriteAwareParticleFactories().get(spriteId);
+    public static SpriteSet getSpriteProvider(Identifier spriteId) {
+        return ((ParticleSpriteManagerAccessor) Minecraft.getInstance().particleEngine).getSpriteSets().get(spriteId);
     }
 
     public static float getModifiedSpawnChance(BlockPos pos, BlockState state, LeafSettingsEntry leafSettings) {
         if (isInsideMinimalSpawnRadius(pos))
             return 0;
 
-        if (!CONFIG.dropFromPlayerPlacedBlocks && state.contains(LeavesBlock.PERSISTENT) && state.get(LeavesBlock.PERSISTENT))
+        if (!CONFIG.dropFromPlayerPlacedBlocks && state.hasProperty(LeavesBlock.PERSISTENT) && state.getValue(LeavesBlock.PERSISTENT))
             return 0;
 
         // Every leaf block or leaf spawner should have a settings entry, but some blocks are considered leaves when they technically aren't
@@ -76,7 +77,7 @@ public class LeafUtil {
         }
 
         if (CONFIG.decaySpawnRateFactor != 1.0f) {
-            if (isLeafBlock(state.getBlock(), true) && state.hasRandomTicks()) { // decaying leaves have random ticks
+            if (isLeafBlock(state.getBlock(), true) && state.isRandomlyTicking()) { // decaying leaves have random ticks
                 spawnChance *= CONFIG.decaySpawnRateFactor;
             }
         }
@@ -87,26 +88,26 @@ public class LeafUtil {
     private static boolean isInsideMinimalSpawnRadius(BlockPos pos) {
         if (CONFIG.startingSpawnRadius == 0) return false;
 
-        return getMaximumDistance(Objects.requireNonNull(MinecraftClient.getInstance().player).getBlockPos(), pos) < CONFIG.startingSpawnRadius;
+        return getMaximumDistance(Objects.requireNonNull(Minecraft.getInstance().player).blockPosition(), pos) < CONFIG.startingSpawnRadius;
     }
 
-    public static void trySpawnSnowParticle(BlockState state, World world, BlockPos pos, Random random) {
+    public static void trySpawnSnowParticle(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (isInsideMinimalSpawnRadius(pos)) return;
 
         // snow spawns independently of leaf particles (and the leaf block settings)
         double snowSpawnChance = CONFIG.getSnowflakeSpawnChance();
         if (snowSpawnChance != 0 && random.nextDouble() < snowSpawnChance) {
-            spawnSnowParticles(1, false, state, world, pos, random);
+            spawnSnowParticles(1, false, state, level, pos, random);
         }
     }
 
-    public static void spawnLeafParticles(int count, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random, LeafSettingsEntry leafSettings) {
+    public static void spawnLeafParticles(int count, boolean spawnInsideBlock, BlockState state, Level level, BlockPos pos, RandomSource random, LeafSettingsEntry leafSettings) {
         if (count == 0) return;
 
         if (leafSettings.getImplementation() == VANILLA && state.getBlock() instanceof LeavesBlockAccessor leavesBlock) {
             for (int i = 0; i < count; i++) {
                 // doesn't respect spawnInsideBlock
-                leavesBlock.callSpawnLeafParticle(world, pos, random);
+                leavesBlock.callSpawnFallingLeavesParticle(level, pos, random);
             }
 
             return;
@@ -119,17 +120,17 @@ public class LeafUtil {
             case VANILLA -> Leaves.FALLING_LEAF; // Vanilla non-LeavesBlock
         };
 
-        BlockStateParticleEffect params = new BlockStateParticleEffect(particleType, state);
+        BlockParticleOption params = new BlockParticleOption(particleType, state);
 
-        spawnParticles(count, params, spawnInsideBlock, state, world, pos, random);
+        spawnParticles(count, params, spawnInsideBlock, state, level, pos, random);
     }
 
-    public static void spawnSnowParticles(int count, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random) {
+    public static void spawnSnowParticles(int count, boolean spawnInsideBlock, BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (count == 0) return;
 
         boolean snowy = false;
 
-        boolean snowyVillagers = VillagerType.forBiome(world.getBiome(pos)) == VillagerType.SNOW;
+        boolean snowyVillagers = VillagerType.byBiome(level.getBiome(pos)) == VillagerType.SNOW;
         boolean isSummer = Seasons.currentSeason == Season.SUMMER;
 
         // matches all snowy vanilla biomes
@@ -137,27 +138,27 @@ public class LeafUtil {
             snowy = true;
         } else {
             // check the top for snow layers/blocks
-            Block topBlock = world.getBlockState(world.getTopPosition(Heightmap.Type.WORLD_SURFACE, pos).down()).getBlock();
+            Block topBlock = level.getBlockState(level.getHeightmapPos(Heightmap.Types.WORLD_SURFACE, pos).below()).getBlock();
 
-            boolean isSnowLayer = topBlock instanceof SnowBlock; // works for seasons:seasonal_snow too
+            boolean isSnowLayer = topBlock instanceof SnowLayerBlock; // works for seasons:seasonal_snow too
             if (isSnowLayer || topBlock == Blocks.SNOW_BLOCK || topBlock instanceof PowderSnowBlock) {
                 snowy = true;
             }
         }
 
         // biome temperature checks for snow don't work well, Seasons globally puts them at or below 0 in winter too
-        // if (world.getBiome(pos).value().getTemperature() < 0.0)
+        // if (level.getBiome(pos).value().getTemperature() < 0.0)
         //    snowy = true;
 
         if (!snowy)
             return;
 
-        BlockStateParticleEffect params = new BlockStateParticleEffect(Leaves.FALLING_SNOW, state);
+        BlockParticleOption params = new BlockParticleOption(Leaves.FALLING_SNOW, state);
 
-        spawnParticles(count, params, spawnInsideBlock, state, world, pos, random);
+        spawnParticles(count, params, spawnInsideBlock, state, level, pos, random);
     }
 
-    public static void spawnParticles(int count, BlockStateParticleEffect params, boolean spawnInsideBlock, BlockState state, World world, BlockPos pos, Random random) {
+    public static void spawnParticles(int count, BlockParticleOption params, boolean spawnInsideBlock, BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (count == 0) return;
 
         for (int i = 0; i < count; i++) {
@@ -169,9 +170,9 @@ public class LeafUtil {
             if (spawnInsideBlock) {
                 y = pos.getY() + random.nextDouble();
             } else {
-                y = pos.getY() - (state.isOpaque() ? 0.1 : 0); // move leaves outside of opaque blocks (to prevent them from appearing black)
+                y = pos.getY() - (state.canOcclude() ? 0.1 : 0); // move leaves outside of opaque blocks (to prevent them from appearing black)
 
-                if (!hasRoomForLeafParticle(world, pos, x, y, z))
+                if (!hasRoomForLeafParticle(level, pos, x, y, z))
                     continue;
             }
 
@@ -179,30 +180,30 @@ public class LeafUtil {
         }
     }
 
-    public static void spawnParticle(BlockStateParticleEffect params, double x, double y, double z, Random random) {
-        MinecraftClient client = MinecraftClient.getInstance();
+    public static void spawnParticle(BlockParticleOption params, double x, double y, double z, RandomSource random) {
+        Minecraft client = Minecraft.getInstance();
 
         // note: doesn't respect shouldAlwaysSpawn, though we set it to true anyway
         if (CONFIG.registerParticles) {
-            client.particleManager.addParticle(params, x, y, z, 0, 0, 0);
+            client.particleEngine.createParticle(params, x, y, z, 0, 0, 0);
         } else {
-            Particle particle = Leaves.FACTORIES.get(params.getType()).createParticle(params, client.world, x, y, z, 0, 0, 0, random);
-            client.particleManager.addParticle(particle);
+            Particle particle = Leaves.FACTORIES.get(params.getType()).createParticle(params, client.level, x, y, z, 0, 0, 0, random);
+            client.particleEngine.add(particle);
         }
     }
 
-    public static double[] getBlockTextureColor(BlockState state, World world, BlockPos pos) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        BlockStateModel model = client.getBlockRenderManager().getModel(state);
+    public static double[] getBlockTextureColor(BlockState state, Level level, BlockPos pos) {
+        Minecraft client = Minecraft.getInstance();
+        BlockStateModel model = client.getBlockRenderer().getBlockModel(state);
 
-        renderRandom.setSeed(state.getRenderingSeed(pos));
-        List<BlockModelPart> parts = model.getParts(renderRandom);
+        renderRandom.setSeed(state.getSeed(pos));
+        List<BlockModelPart> parts = model.collectParts(renderRandom);
 
         if (parts.size() > 1) {
             LOGGER.debug("block state {} has {} parts: {}", state, parts.size(), parts);
         }
 
-        Sprite sprite = null;
+        TextureAtlasSprite sprite = null;
         boolean shouldColor = false;
 
         if (!parts.isEmpty()) {
@@ -213,7 +214,7 @@ public class LeafUtil {
             if (!quads.isEmpty()) {
                 boolean useFirstQuad = true;
 
-                Identifier id = Registries.BLOCK.getId(state.getBlock());
+                Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
                 if (id.getNamespace().equals("byg")) {
                     /*
                      * some BYG leaves have their actual tinted leaf texture in an "overlay" that comes second, full list:
@@ -225,20 +226,20 @@ public class LeafUtil {
 
                 BakedQuad quad = quads.get(useFirstQuad ? 0 : quads.size() - 1);
                 sprite = quad.sprite();
-                shouldColor = quad.hasTint();
+                shouldColor = quad.isTinted();
             }
         }
 
         if (sprite == null) {
             // fall back to block breaking particle
-            sprite = model.particleSprite();
+            sprite = model.particleIcon();
             shouldColor = true;
         }
 
-        SpriteContents spriteContents = sprite.getContents();
-        Identifier spriteId = spriteContents.getId();
-        NativeImage texture = ((SpriteContentsAccessor) spriteContents).getMipmapLevelsImages()[0]; // directly extract texture
-        int blockColor = (shouldColor ? client.getBlockColors().getColor(state, world, pos, 0) : -1);
+        SpriteContents spriteContents = sprite.contents();
+        Identifier spriteId = spriteContents.name();
+        NativeImage texture = ((SpriteContentsAccessor) spriteContents).getByMipLevel()[0]; // directly extract texture
+        int blockColor = (shouldColor ? client.getBlockColors().getColor(state, level, pos, 0) : -1);
 
         return calculateLeafColor(spriteId, texture, blockColor);
     }
@@ -266,23 +267,23 @@ public class LeafUtil {
         return textureColor;
     }
 
-    private static boolean hasRoomForLeafParticle(World world, BlockPos pos, double x, double y, double z) {
+    private static boolean hasRoomForLeafParticle(Level level, BlockPos pos, double x, double y, double z) {
         // Never spawn a particle if there's a leaf block below
         // This test is necessary because modded leaf blocks may not have collisions
-        if (isLeafBlock(world.getBlockState(pos.down()).getBlock(), true)) return false;
+        if (isLeafBlock(level.getBlockState(pos.below()).getBlock(), true)) return false;
 
         double y2 = y - CONFIG.minimumFreeSpaceBelow * 0.5;
-        Box collisionBox = new Box(x - 0.1, y, z - 0.1, x + 0.1, y2, z + 0.1);
+        AABB collisionBox = new AABB(x - 0.1, y, z - 0.1, x + 0.1, y2, z + 0.1);
 
         // Only spawn the particle if there's enough room for it
-        return !world.getBlockCollisions(null, collisionBox).iterator().hasNext();
+        return !level.getBlockCollisions(null, collisionBox).iterator().hasNext();
     }
 
     public static Map<Identifier, LeafSettingsEntry> getRegisteredLeafBlocks(boolean useBlockTags) {
-        return Registries.BLOCK
-            .getIds()
+        return BuiltInRegistries.BLOCK
+            .keySet()
             .stream()
-            .filter(entry -> isLeafBlock(Registries.BLOCK.get(entry), useBlockTags))
+            .filter(entry -> isLeafBlock(BuiltInRegistries.BLOCK.getValue(entry), useBlockTags))
             .collect(Collectors.toMap(
                 Function.identity(),
                 LeafSettingsEntry::new
@@ -291,12 +292,12 @@ public class LeafUtil {
 
     /** Block tags can only be used once the integrated server has been started */
     public static boolean isLeafBlock(Block block, boolean useBlockTags) {
-        return (block instanceof LeavesBlock) || (useBlockTags && block.getDefaultState().isIn(BlockTags.LEAVES));
+        return (block instanceof LeavesBlock) || (useBlockTags && block.defaultBlockState().is(BlockTags.LEAVES));
     }
 
     @Nullable
     public static LeafSettingsEntry getLeafSettingsEntry(BlockState blockState) {
-        return CONFIG.leafSettings.get(Registries.BLOCK.getId(blockState.getBlock()));
+        return CONFIG.leafSettings.get(BuiltInRegistries.BLOCK.getKey(blockState.getBlock()));
     }
 
     public static int getMaximumDistance(Vec3i v1, Vec3i v2) {
@@ -307,13 +308,13 @@ public class LeafUtil {
     }
 
     public static double[] averageColor(NativeImage image) {
-        if (image.getFormat() != NativeImage.Format.RGBA) {
-            LOGGER.error("RGBA image required, was {}", image.getFormat());
+        if (image.format() != NativeImage.Format.RGBA) {
+            LOGGER.error("RGBA image required, was {}", image.format());
             return new double[] {1, 1, 1};
         }
 
         NativeImageAccessor imageAcc = (NativeImageAccessor) (Object) image;
-        long pointer = imageAcc.getPointer();
+        long pointer = imageAcc.getPixels();
 
         if (pointer == 0) {
             LOGGER.error("image is not allocated");

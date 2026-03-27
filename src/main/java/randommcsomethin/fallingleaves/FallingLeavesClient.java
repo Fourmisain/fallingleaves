@@ -3,7 +3,7 @@ package randommcsomethin.fallingleaves;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import randommcsomethin.fallingleaves.init.Config;
@@ -16,7 +16,7 @@ public class FallingLeavesClient implements ClientModInitializer {
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
     public static Identifier id(String path) {
-        return Identifier.of(MOD_ID, path);
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package randommcsomethin.fallingleaves.mixin;
 
-import net.minecraft.client.particle.ParticleManager;
-import net.minecraft.client.world.ClientWorld;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.particle.ParticleEngine;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,19 +12,19 @@ import randommcsomethin.fallingleaves.util.Wind;
 
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 
-@Mixin(ParticleManager.class)
+@Mixin(ParticleEngine.class)
 public abstract class ParticleManagerMixin {
 
 	@Shadow
-	protected ClientWorld world;
+	protected ClientLevel level;
 
 	@Inject(method = "tick", at = @At("HEAD"))
 	public void tick(CallbackInfo ci) {
 		if (!CONFIG.enabled)
 			return;
 
-		Seasons.tick(world);
-		Wind.tick(world);
+		Seasons.tick(level);
+		Wind.tick(level);
 	}
 
 }

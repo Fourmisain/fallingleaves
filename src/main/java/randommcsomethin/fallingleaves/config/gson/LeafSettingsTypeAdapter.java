@@ -6,7 +6,7 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
 
 import java.io.IOException;

@@ -2,8 +2,8 @@ package randommcsomethin.fallingleaves.mixin;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.network.packet.s2c.common.SynchronizeTagsS2CPacket;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,11 +15,11 @@ import static randommcsomethin.fallingleaves.FallingLeavesClient.LOGGER;
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 
 @Environment(EnvType.CLIENT)
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(ClientPacketListener.class)
 public abstract class ClientPlayNetworkHandlerMixin {
 
-    @Inject(method = "onSynchronizeTags", at = @At("RETURN"))
-    public void loadRegisteredLeafBlocks(SynchronizeTagsS2CPacket packet, CallbackInfo ci) {
+    @Inject(method = "handleUpdateTags", at = @At("RETURN"))
+    public void loadRegisteredLeafBlocks(ClientboundUpdateTagsPacket packet, CallbackInfo ci) {
         LOGGER.info("Loading all registered leaf blocks.");
 
         // This is pretty much the earliest point in time where we can use block tags

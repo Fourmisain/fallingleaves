@@ -9,8 +9,8 @@ import me.shedaniel.autoconfig.AutoConfigClient;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionResult;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
 import randommcsomethin.fallingleaves.FallingLeavesClient;
@@ -54,7 +54,7 @@ public class Config {
                 data.validatePostLoad();
             } catch (ConfigData.ValidationException ignored) { }
             Wind.init();
-            return ActionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         });
 
         // Note: Configurator.setLevel() might not be supported in future versions of log4j.
@@ -68,7 +68,7 @@ public class Config {
         );
 
         for (var guiProvider : List.of(
-            new StringSetGuiProvider<>(Identifier.class, Identifier::of),
+            new StringSetGuiProvider<>(Identifier.class, Identifier::parse),
             new StringSetGuiProvider<>(String.class, s -> s)
         )) {
             AutoConfigClient.getGuiRegistry(FallingLeavesConfig.class).registerPredicateProvider(guiProvider, guiProvider.getPredicate());
@@ -178,12 +178,12 @@ public class Config {
 
         // Conifer Leaves were moved to Leaf Settings
         for (String leafId : oldConfig.coniferLeafIds) {
-            newConfig.updateLeafSettings(Identifier.of(leafId), (entry) -> entry.isConiferBlock= true);
+            newConfig.updateLeafSettings(Identifier.parse(leafId), (entry) -> entry.isConiferBlock= true);
         }
 
         // Rate Overrides were replaced by Spawn Rate Factors/Multipliers
         for (var oldEntry : oldConfig.rateOverrides.entrySet()) {
-            newConfig.updateLeafSettings(Identifier.of(oldEntry.getKey()), (newEntry) -> {
+            newConfig.updateLeafSettings(Identifier.parse(oldEntry.getKey()), (newEntry) -> {
                 double oldRateOverride = oldEntry.getValue();
 
                 // Set the new factor according the override and base rate

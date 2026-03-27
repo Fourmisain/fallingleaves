@@ -1,15 +1,15 @@
 package randommcsomethin.fallingleaves.config;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.Block;
-import net.minecraft.block.LeavesBlock;
-import net.minecraft.block.TintedParticleLeavesBlock;
-import net.minecraft.block.UntintedParticleLeavesBlock;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.TintedParticleLeavesBlock;
+import net.minecraft.world.level.block.UntintedParticleLeavesBlock;
 import randommcsomethin.fallingleaves.FallingLeavesClient;
 import randommcsomethin.fallingleaves.mixin.LeavesBlockAccessor;
 import randommcsomethin.fallingleaves.particle.ParticleImplementation;
@@ -33,7 +33,7 @@ public class ConfigDefaults {
 
     /** Whether LeavesBlock.spawnLeafParticle() will be used */
     public static boolean useVanillaParticles(Identifier blockId) {
-        Block b = Registries.BLOCK.get(blockId);
+        Block b = BuiltInRegistries.BLOCK.getValue(blockId);
 
         // no LeavesBlock.spawnLeafParticle() to call
         if (!(b instanceof LeavesBlock))
@@ -58,7 +58,7 @@ public class ConfigDefaults {
             // when a subclass has a custom implementation, use it by default
             try {
                 String methodName = FabricLoader.getInstance().isDevelopmentEnvironment() ? "spawnLeafParticle" : "method_67234";
-                b.getClass().getDeclaredMethod(methodName, World.class, BlockPos.class, Random.class);
+                b.getClass().getDeclaredMethod(methodName, Level.class, BlockPos.class, RandomSource.class);
 
                 FallingLeavesClient.LOGGER.debug("{} implements spawnLeafParticle", b);
                 return true;
@@ -135,7 +135,7 @@ public class ConfigDefaults {
 */
         }
 
-        Block block = Registries.BLOCK.get(blockId);
+        Block block = BuiltInRegistries.BLOCK.getValue(blockId);
         if (!(block instanceof LeavesBlockAccessor leavesBlock))
             return 1;
 

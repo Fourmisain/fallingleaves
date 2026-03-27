@@ -1,13 +1,13 @@
 package randommcsomethin.fallingleaves.mixin;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.registry.Registries;
-import net.minecraft.state.property.Property;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,12 +20,12 @@ import static randommcsomethin.fallingleaves.util.LeafUtil.*;
 @Mixin(Block.class)
 public abstract class BlockMixin {
 
-    @Inject(method = "randomDisplayTick", at = @At("HEAD"))
-    private void randomLeafBlockTick(BlockState state, World world, BlockPos pos, Random random, CallbackInfo ci) {
+    @Inject(method = "animateTick", at = @At("HEAD"))
+    private void randomLeafBlockTick(BlockState state, Level level, BlockPos pos, RandomSource random, CallbackInfo ci) {
         if (!CONFIG.enabled)
             return;
 
-        Identifier id = Registries.BLOCK.getId(state.getBlock());
+        Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
 
         if (!CONFIG.isLeafSpawner(id))
             return;
@@ -35,22 +35,22 @@ public abstract class BlockMixin {
             Property<?> property = entry.getKey();
             Comparable<?> value = entry.getValue();
 
-            if (!state.contains(property))
+            if (!state.hasProperty(property))
                 continue;
 
-            if (!state.get(property).equals(value)) {
+            if (!state.getValue(property).equals(value)) {
                 return;
             }
         }
 
-        trySpawnSnowParticle(state, world, pos, random);
+        trySpawnSnowParticle(state, level, pos, random);
 
         LeafSettingsEntry leafSettings = getLeafSettingsEntry(state);
         if (leafSettings != null) {
             float spawnChance = getModifiedSpawnChance(pos, state, leafSettings);
 
             if (spawnChance != 0 && random.nextFloat() < spawnChance) {
-                spawnLeafParticles(1, false, state, world, pos, random, leafSettings);
+                spawnLeafParticles(1, false, state, level, pos, random, leafSettings);
             }
         }
     }

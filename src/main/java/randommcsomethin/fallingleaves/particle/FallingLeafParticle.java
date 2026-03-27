@@ -2,20 +2,22 @@ package randommcsomethin.fallingleaves.particle;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.particle.*;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleType;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.particle.Particle;
+import net.minecraft.client.particle.ParticleProvider;
+import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.SpriteSet;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.Vec3;
 import randommcsomethin.fallingleaves.init.Leaves;
 import randommcsomethin.fallingleaves.util.LeafUtil;
 import randommcsomethin.fallingleaves.util.Wind;
@@ -27,7 +29,7 @@ import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 import static randommcsomethin.fallingleaves.util.LeafUtil.CHERRY_LEAVES_PARTICLE_ID;
 import static randommcsomethin.fallingleaves.util.LeafUtil.TINTED_LEAVES_PARTICLE_ID;
 
-public class FallingLeafParticle extends BillboardParticle {
+public class FallingLeafParticle extends SingleQuadParticle {
 
     public static final float TAU = (float)(2 * Math.PI); // 1 rotation
 
@@ -43,30 +45,30 @@ public class FallingLeafParticle extends BillboardParticle {
     protected boolean inWater = false;
     protected boolean stuckInGround = false;
 
-    public FallingLeafParticle(ParticleType<BlockStateParticleEffect> particleType, ClientWorld clientWorld, double x, double y, double z, double r, double g, double b, Sprite sprite) {
-        super(clientWorld, x, y, z, 0.0, 0.0, 0.0, sprite);
+    public FallingLeafParticle(ParticleType<BlockParticleOption> particleType, ClientLevel level, double x, double y, double z, double r, double g, double b, TextureAtlasSprite sprite) {
+        super(level, x, y, z, 0.0, 0.0, 0.0, sprite);
 
         if (particleType == Leaves.FALLING_CHERRY) {
-            this.gravityStrength = 0.0175f + random.nextFloat() * 0.0050f;
+            this.gravity = 0.0175f + random.nextFloat() * 0.0050f;
             this.windCoefficient = 0.12f + random.nextFloat() * 0.8f;
         } else if (particleType == Leaves.FALLING_SNOW) {
-            this.gravityStrength = 0.0125f + random.nextFloat() * 0.0125f;
+            this.gravity = 0.0125f + random.nextFloat() * 0.0125f;
             this.windCoefficient = 0.1f + random.nextFloat() * 0.1f;
         } else {
-            this.gravityStrength = 0.08f + random.nextFloat() * 0.04f;
+            this.gravity = 0.08f + random.nextFloat() * 0.04f;
             this.windCoefficient = 0.6f + random.nextFloat() * 0.4f;
         }
 
         // the Particle constructor adds random noise to the velocity which we don't want
-        this.velocityX = 0.0;
-        this.velocityY = 0.0;
-        this.velocityZ = 0.0;
+        this.xd = 0.0;
+        this.yd = 0.0;
+        this.zd = 0.0;
 
-        this.maxAge = CONFIG.leafLifespan;
+        this.lifetime = CONFIG.leafLifespan;
 
-        this.red   = (float) r;
-        this.green = (float) g;
-        this.blue  = (float) b;
+        this.rCol   = (float) r;
+        this.gCol = (float) g;
+        this.bCol  = (float) b;
 
         if (particleType == Leaves.FALLING_CHERRY || particleType == Leaves.FALLING_SNOW) {
             // accelerate over 3-7 seconds to at most 1 rotation per second
@@ -78,55 +80,55 @@ public class FallingLeafParticle extends BillboardParticle {
             this.maxRotateSpeed = (random.nextBoolean() ? -1 : 1) * (0.1f + 2.4f * random.nextFloat()) * TAU / 20f;
         }
 
-        this.zRotation = this.lastZRotation = random.nextFloat() * TAU;
+        this.roll = this.oRoll = random.nextFloat() * TAU;
 
         if (particleType == Leaves.FALLING_CHERRY) {
-            this.scale = CONFIG.getLeafSize() / 2.0f;
+            this.quadSize = CONFIG.getLeafSize() / 2.0f;
         } else {
-            this.scale = CONFIG.getLeafSize();
+            this.quadSize = CONFIG.getLeafSize();
         }
 
         if (random.nextBoolean())
-            this.scale *= 1.5f;
+            this.quadSize *= 1.5f;
     }
 
     @Override
     public void tick() {
-        lastX = x;
-        lastY = y;
-        lastZ = z;
-        lastZRotation = zRotation;
+        xo = x;
+        yo = y;
+        zo = z;
+        oRoll = roll;
 
         age++;
 
         // fade-out animation
-        if (age >= maxAge + 1 - FADE_DURATION) {
+        if (age >= lifetime + 1 - FADE_DURATION) {
             alpha -= 1F / FADE_DURATION;
         }
 
-        if (age >= maxAge) {
-            markDead();
+        if (age >= lifetime) {
+            remove();
             return;
         }
 
-        BlockPos blockPos = BlockPos.ofFloored(x, y, z);
-        FluidState fluidState = world.getFluidState(blockPos);
+        BlockPos blockPos = BlockPos.containing(x, y, z);
+        FluidState fluidState = level.getFluidState(blockPos);
 
-        if (fluidState.isIn(FluidTags.LAVA)) {
-            double waterY = blockPos.getY() + fluidState.getHeight(world, blockPos);
+        if (fluidState.is(FluidTags.LAVA)) {
+            double waterY = blockPos.getY() + fluidState.getHeight(level, blockPos);
             if (waterY >= y) {
-                world.addParticleClient(ParticleTypes.LAVA, x, y, z, 0.0, 0.0, 0.0);
-                markDead();
+                level.addParticle(ParticleTypes.LAVA, x, y, z, 0.0, 0.0, 0.0);
+                remove();
                 return;
             }
         }
 
         // apply gravity and weight of rain (note: hasRain() is probably too expensive)
-        velocityY -= 0.04 * (gravityStrength + (world.isRaining() && world.isSkyVisible(blockPos) ? 0.04 : 0));
+        yd -= 0.04 * (gravity + (level.isRaining() && level.canSeeSky(blockPos) ? 0.04 : 0));
 
-        if (fluidState.isIn(FluidTags.WATER)) {
+        if (fluidState.is(FluidTags.WATER)) {
             double waterY;
-            if ((waterY = blockPos.getY() + fluidState.getHeight(world, blockPos)) >= y - 0.1) {
+            if ((waterY = blockPos.getY() + fluidState.getHeight(level, blockPos)) >= y - 0.1) {
                 if (!inWater) {
                     // hit water for the first time
                     inWater = true;
@@ -134,26 +136,26 @@ public class FallingLeafParticle extends BillboardParticle {
                     if (Math.abs(waterY - y) < 0.2)
                         y = waterY;
 
-                    velocityY *= 0.1;
-                    velocityX *= 0.5;
-                    velocityZ *= 0.5;
+                    yd *= 0.1;
+                    xd *= 0.5;
+                    zd *= 0.5;
 
                     rotateTime = 0;
                 } else {
                     // buoyancy - try to stay on top of the water surface
                     double depth = Math.max(waterY + 0.1 - y, 0);
-                    velocityY += depth * windCoefficient / 30.0f;
+                    yd += depth * windCoefficient / 30.0f;
                 }
 
-                if (!fluidState.isStill()) {
-                    Vec3d pushVel = fluidState.getVelocity(world, blockPos).multiply(0.4);
-                    velocityX += (pushVel.x - velocityX) * windCoefficient / 60.0f;
-                    velocityZ += (pushVel.z - velocityZ) * windCoefficient / 60.0f;
+                if (!fluidState.isSource()) {
+                    Vec3 pushVel = fluidState.getFlow(level, blockPos).scale(0.4);
+                    xd += (pushVel.x - xd) * windCoefficient / 60.0f;
+                    zd += (pushVel.z - zd) * windCoefficient / 60.0f;
                 }
 
-                velocityX *= (1 - WATER_FRICTION);
-                velocityY *= (1 - WATER_FRICTION);
-                velocityZ *= (1 - WATER_FRICTION);
+                xd *= (1 - WATER_FRICTION);
+                yd *= (1 - WATER_FRICTION);
+                zd *= (1 - WATER_FRICTION);
             }
         } else {
             // note: intentionally inaccurate, so the leaves don't constantly switch between being blown by wind and hitting water again
@@ -162,7 +164,7 @@ public class FallingLeafParticle extends BillboardParticle {
             if (!onGround) {
                 // spin when in the air
                 rotateTime = Math.min(rotateTime + 1, maxRotateTime);
-                zRotation += (rotateTime / (float) maxRotateTime) * maxRotateSpeed;
+                roll += (rotateTime / (float) maxRotateTime) * maxRotateSpeed;
             } else {
                 rotateTime = 0;
 
@@ -180,11 +182,11 @@ public class FallingLeafParticle extends BillboardParticle {
             // the wind coefficient is just another factor in (0, 1) to add some variance between leaves.
             // this implementation lags behind the actual wind speed and will never reach it fully,
             // so wind speeds needs to be adjusted accordingly
-            velocityX += (Wind.windX - velocityX) * windCoefficient / 60.0f;
-            velocityZ += (Wind.windZ - velocityZ) * windCoefficient / 60.0f;
+            xd += (Wind.windX - xd) * windCoefficient / 60.0f;
+            zd += (Wind.windZ - zd) * windCoefficient / 60.0f;
         }
 
-        move(velocityX, velocityY, velocityZ);
+        move(xd, yd, zd);
     }
 
     @Override
@@ -196,14 +198,14 @@ public class FallingLeafParticle extends BillboardParticle {
         double oldDz = dz;
 
         // TODO: is it possible to turn off collisions with leaf blocks?
-        Vec3d vec3d = Entity.adjustMovementForCollisions(null, new Vec3d(dx, dy, dz), getBoundingBox(), world, List.of());
+        Vec3 vec3d = Entity.collideBoundingBox(null, new Vec3(dx, dy, dz), getBoundingBox(), level, List.of());
         dx = vec3d.x;
         dy = vec3d.y;
         dz = vec3d.z;
 
         // lose horizontal velocity on collision
-        if (oldDx != dx) velocityX = 0.0;
-        if (oldDz != dz) velocityZ = 0.0;
+        if (oldDx != dx) xd = 0.0;
+        if (oldDz != dz) zd = 0.0;
 
         onGround = oldDy != dy && oldDy < 0.0;
 
@@ -218,33 +220,33 @@ public class FallingLeafParticle extends BillboardParticle {
 
         if (stuckInGround) {
             // don't accumulate speed over time
-            velocityX = 0.0;
-            velocityY = 0.0;
-            velocityZ = 0.0;
+            xd = 0.0;
+            yd = 0.0;
+            zd = 0.0;
 
             // don't move
             return;
         }
 
         if (dx != 0.0 || dy != 0.0 || dz != 0.0) {
-            setBoundingBox(getBoundingBox().offset(dx, dy, dz));
-            repositionFromBoundingBox();
+            setBoundingBox(getBoundingBox().move(dx, dy, dz));
+            setLocationFromBoundingbox();
         }
     }
 
     @Override
-    protected RenderType getRenderType() {
-        return BillboardParticle.RenderType.PARTICLE_ATLAS_TRANSLUCENT;
+    protected Layer getLayer() {
+        return SingleQuadParticle.Layer.TRANSLUCENT;
     }
 
     @Environment(EnvType.CLIENT)
-    public record BlockStateFactory(SpriteProvider spriteProvider) implements ParticleFactory<BlockStateParticleEffect> {
+    public record BlockStateFactory(SpriteSet spriteProvider) implements ParticleProvider<BlockParticleOption> {
         @Override
-        public Particle createParticle(BlockStateParticleEffect parameters, ClientWorld world, double x, double y, double z, double unusedX, double unusedY, double unusedZ, Random random) {
+        public Particle createParticle(BlockParticleOption parameters, ClientLevel level, double x, double y, double z, double unusedX, double unusedY, double unusedZ, RandomSource random) {
             double r, g, b;
 
             var particleType = parameters.getType();
-            SpriteProvider customSpriteProvider = null;
+            SpriteSet customSpriteProvider = null;
 
             if (particleType == Leaves.FALLING_CHERRY) {
                 // use vanilla textures
@@ -253,23 +255,23 @@ public class FallingLeafParticle extends BillboardParticle {
             } else if (particleType == Leaves.FALLING_SNOW) {
                 r = g = b = 1;
             } else {
-                var blockId = Registries.BLOCK.getId(parameters.getBlockState().getBlock());
+                var blockId = BuiltInRegistries.BLOCK.getKey(parameters.getState().getBlock());
                 customSpriteProvider = Leaves.CUSTOM_LEAVES.get(id("block/%s/%s".formatted(blockId.getNamespace(), blockId.getPath())));
 
                 if (CONFIG.useVanillaTextures && particleType == Leaves.FALLING_LEAF && customSpriteProvider == null) {
                     customSpriteProvider = LeafUtil.getSpriteProvider(TINTED_LEAVES_PARTICLE_ID);
                 }
 
-                double[] color = LeafUtil.getBlockTextureColor(parameters.getBlockState(), world, BlockPos.ofFloored(x, y, z));
+                double[] color = LeafUtil.getBlockTextureColor(parameters.getState(), level, BlockPos.containing(x, y, z));
 
                 r = color[0];
                 g = color[1];
                 b = color[2];
             }
 
-            Sprite sprite = (customSpriteProvider != null ? customSpriteProvider : spriteProvider).getSprite(random);
+            TextureAtlasSprite sprite = (customSpriteProvider != null ? customSpriteProvider : spriteProvider).get(random);
 
-            return new FallingLeafParticle(particleType, world, x, y, z, r, g, b, sprite);
+            return new FallingLeafParticle(particleType, level, x, y, z, r, g, b, sprite);
         }
     }
 

@@ -1,9 +1,9 @@
 package randommcsomethin.fallingleaves.mixin;
 
-import net.minecraft.block.LeavesBlock;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LeavesBlock;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -14,5 +14,5 @@ public interface LeavesBlockAccessor {
 	float getLeafParticleChance();
 
 	@Invoker
-	void callSpawnLeafParticle(World world, BlockPos pos, Random random);
+	void callSpawnFallingLeavesParticle(Level level, BlockPos pos, RandomSource random);
 }

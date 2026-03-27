@@ -8,16 +8,16 @@ import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.LeavesBlock;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,19 +37,19 @@ public abstract class LeafTickMixin {
     @Unique
     private BlockState fallingleaves$blockState;
 
-    @Inject(method = "randomDisplayTick", at = @At("HEAD"))
-    private void captureBlockState(BlockState state, World world, BlockPos pos, Random random, CallbackInfo ci) {
+    @Inject(method = "animateTick", at = @At("HEAD"))
+    private void captureBlockState(BlockState state, Level level, BlockPos pos, RandomSource random, CallbackInfo ci) {
         fallingleaves$blockState = state;
     }
 
     @ModifyExpressionValue(
-        method = "spawnLeafParticle(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/random/Random;Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;)V",
+        method = "makeFallingLeavesParticles(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V",
         at = @At(
             value = "FIELD",
-            target = "Lnet/minecraft/block/LeavesBlock;leafParticleChance:F"
+            target = "Lnet/minecraft/world/level/block/LeavesBlock;leafParticleChance:F"
         )
     )
-    private float adjustSpawnChance(float original, @Local(argsOnly = true, ordinal = 0) World world, @Local(argsOnly = true, ordinal = 0) BlockPos pos,
+    private float adjustSpawnChance(float original, @Local(argsOnly = true, ordinal = 0) Level level, @Local(argsOnly = true, ordinal = 0) BlockPos pos,
             @Share("leafSettings") LocalRef<LeafSettingsEntry> leafSettingsRef) {
         if (!CONFIG.enabled)
             return original;
@@ -61,10 +61,10 @@ public abstract class LeafTickMixin {
     }
 
     @WrapOperation(
-        method = "spawnLeafParticle(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/random/Random;Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;)V",
+        method = "makeFallingLeavesParticles(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/block/LeavesBlock;isFaceFullSquare(Lnet/minecraft/util/shape/VoxelShape;Lnet/minecraft/util/math/Direction;)Z"
+            target = "Lnet/minecraft/world/level/block/LeavesBlock;isFaceFull(Lnet/minecraft/world/phys/shapes/VoxelShape;Lnet/minecraft/core/Direction;)Z"
         )
     )
     private boolean skipCheck(VoxelShape voxelShape, Direction direction, Operation<Boolean> original,
@@ -79,43 +79,43 @@ public abstract class LeafTickMixin {
     }
 
     @WrapOperation(
-        method = "spawnLeafParticle(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/random/Random;Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;)V",
+        method = "makeFallingLeavesParticles(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/block/LeavesBlock;spawnLeafParticle(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/random/Random;)V"
+            target = "Lnet/minecraft/world/level/block/LeavesBlock;spawnFallingLeavesParticle(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;)V"
         )
     )
-    private void replaceLeafParticles(LeavesBlock instance, World world, BlockPos pos, Random random, Operation<Void> original,
+    private void replaceLeafParticles(LeavesBlock instance, Level level, BlockPos pos, RandomSource random, Operation<Void> original,
             @Share("leafSettings") LocalRef<LeafSettingsEntry> leafSettingsRef) {
         LeafSettingsEntry leafSettings = leafSettingsRef.get();
 
         if (!CONFIG.enabled || (leafSettings != null && leafSettings.getImplementation() == ParticleImplementation.VANILLA)) {
-            original.call(instance, world, pos, random);
+            original.call(instance, level, pos, random);
             return;
         }
 
         if (leafSettings != null) {
-            spawnLeafParticles(1, false, fallingleaves$blockState, world, pos, random, leafSettings);
+            spawnLeafParticles(1, false, fallingleaves$blockState, level, pos, random, leafSettings);
         }
     }
 
-    @Inject(method = "randomDisplayTick", at = @At("HEAD"))
-    private void letItSnowLetIsSnowLetItSnow(BlockState state, World world, BlockPos pos, Random random, CallbackInfo ci) {
+    @Inject(method = "animateTick", at = @At("HEAD"))
+    private void letItSnowLetIsSnowLetItSnow(BlockState state, Level level, BlockPos pos, RandomSource random, CallbackInfo ci) {
         if (!CONFIG.enabled)
             return;
 
-        trySpawnSnowParticle(state, world, pos, random);
+        trySpawnSnowParticle(state, level, pos, random);
     }
 
     // TODO this only runs server-side and will thus only work in singleplayer
-    @Inject(method = "randomTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ServerWorld;removeBlock(Lnet/minecraft/util/math/BlockPos;Z)Z"))
-    public void randomTick(BlockState state, ServerWorld world, BlockPos pos, Random random, CallbackInfo ci) {
+    @Inject(method = "randomTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;removeBlock(Lnet/minecraft/core/BlockPos;Z)Z"))
+    public void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random, CallbackInfo ci) {
         if (!CONFIG.enabled || CONFIG.maxDecayLeaves == 0)
             return;
 
-        MinecraftClient.getInstance().execute(() -> {
-            ClientWorld clientWorld = MinecraftClient.getInstance().world;
-            if (clientWorld == null)
+        Minecraft.getInstance().execute(() -> {
+            ClientLevel clientLevel = Minecraft.getInstance().level;
+            if (clientLevel == null)
                 return;
 
             LeafSettingsEntry leafSettings = getLeafSettingsEntry(state);
@@ -123,22 +123,22 @@ public abstract class LeafTickMixin {
                 // binomial distribution - extremes are less likely
                 int count = 0;
                 for (int i = 0; i < CONFIG.maxDecayLeaves; i++) {
-                    if (clientWorld.random.nextBoolean()) {
+                    if (clientLevel.random.nextBoolean()) {
                         count++;
                     }
                 }
 
-                LeafUtil.spawnLeafParticles(count, true, state, clientWorld, pos, clientWorld.random, leafSettings);
+                LeafUtil.spawnLeafParticles(count, true, state, clientLevel, pos, clientLevel.random, leafSettings);
             }
 
             int snowCount = 0;
             for (int i = 0; i < 2*CONFIG.maxDecayLeaves; i++) {
-                if (clientWorld.random.nextBoolean()) {
+                if (clientLevel.random.nextBoolean()) {
                     snowCount++;
                 }
             }
 
-            LeafUtil.spawnSnowParticles(snowCount, true, state, clientWorld, pos, clientWorld.random);
+            LeafUtil.spawnSnowParticles(snowCount, true, state, clientLevel, pos, clientLevel.random);
         });
     }
 

@@ -2,7 +2,7 @@ package randommcsomethin.fallingleaves.config;
 
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import randommcsomethin.fallingleaves.FallingLeavesClient;
 
 import java.util.*;
@@ -29,7 +29,7 @@ public class FallingLeavesConfigV1 {
     public boolean leavesOnBlockHit = true;
     public int minimumFreeSpaceBelow = 1;
     public boolean windEnabled = true;
-    public Set<Identifier> windlessDimensions = new HashSet<>(Arrays.asList(Identifier.ofVanilla("the_nether"), Identifier.ofVanilla("the_end")));
+    public Set<Identifier> windlessDimensions = new HashSet<>(Arrays.asList(Identifier.withDefaultNamespace("the_nether"), Identifier.withDefaultNamespace("the_end")));
     public Map<Identifier, LeafSettingsEntryV1> leafSettings = new HashMap<>();
     public Set<String> leafSpawners = new HashSet<>();  // block ids with properties, e.g. minecraft:bamboo[leaves=large]
     public double fallSpawnRateFactor = 1.8;

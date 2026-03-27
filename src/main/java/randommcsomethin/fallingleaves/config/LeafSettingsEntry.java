@@ -1,6 +1,6 @@
 package randommcsomethin.fallingleaves.config;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import randommcsomethin.fallingleaves.particle.ParticleImplementation;
 
 import static randommcsomethin.fallingleaves.init.Config.CONFIG;

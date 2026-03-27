@@ -3,26 +3,24 @@ package randommcsomethin.fallingleaves.init;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.particle.ParticleFactory;
-import net.minecraft.client.particle.ParticleSpriteManager.SimpleSpriteProvider;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.ParticleType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.resource.SynchronousResourceReloader;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.World;
+import net.minecraft.client.particle.ParticleProvider;
+import net.minecraft.client.particle.ParticleResources.MutableSpriteSet;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import randommcsomethin.fallingleaves.config.LeafSettingsEntry;
 import randommcsomethin.fallingleaves.particle.FallingLeafParticle;
 import randommcsomethin.fallingleaves.util.LeafUtil;
@@ -38,23 +36,23 @@ import static randommcsomethin.fallingleaves.init.Config.CONFIG;
 import static randommcsomethin.fallingleaves.util.LeafUtil.getLeafSettingsEntry;
 
 public class Leaves {
-    public static final ParticleType<BlockStateParticleEffect> FALLING_LEAF;
-    public static final ParticleType<BlockStateParticleEffect> FALLING_CONIFER_LEAF;
-    public static final ParticleType<BlockStateParticleEffect> FALLING_CHERRY;
-    public static final ParticleType<BlockStateParticleEffect> FALLING_SNOW;
+    public static final ParticleType<BlockParticleOption> FALLING_LEAF;
+    public static final ParticleType<BlockParticleOption> FALLING_CONIFER_LEAF;
+    public static final ParticleType<BlockParticleOption> FALLING_CHERRY;
+    public static final ParticleType<BlockParticleOption> FALLING_SNOW;
 
-    public static final Map<ParticleType<BlockStateParticleEffect>, Identifier> LEAVES;
-    public static final Map<ParticleType<BlockStateParticleEffect>, ParticleFactory<BlockStateParticleEffect>> FACTORIES = new IdentityHashMap<>();
+    public static final Map<ParticleType<BlockParticleOption>, Identifier> LEAVES;
+    public static final Map<ParticleType<BlockParticleOption>, ParticleProvider<BlockParticleOption>> FACTORIES = new IdentityHashMap<>();
 
-    public static final Map<Identifier, SimpleSpriteProvider> CUSTOM_LEAVES = new HashMap<>();
+    public static final Map<Identifier, MutableSpriteSet> CUSTOM_LEAVES = new HashMap<>();
 
     private static boolean preLoadedRegisteredLeafBlocks = false;
 
     static {
-        FALLING_LEAF = FabricParticleTypes.complex(true, BlockStateParticleEffect::createCodec, BlockStateParticleEffect::createPacketCodec);
-        FALLING_CONIFER_LEAF = FabricParticleTypes.complex(true, BlockStateParticleEffect::createCodec, BlockStateParticleEffect::createPacketCodec);
-        FALLING_CHERRY = FabricParticleTypes.complex(true, BlockStateParticleEffect::createCodec, BlockStateParticleEffect::createPacketCodec);
-        FALLING_SNOW = FabricParticleTypes.complex(true, BlockStateParticleEffect::createCodec, BlockStateParticleEffect::createPacketCodec);
+        FALLING_LEAF = FabricParticleTypes.complex(true, BlockParticleOption::codec, BlockParticleOption::streamCodec);
+        FALLING_CONIFER_LEAF = FabricParticleTypes.complex(true, BlockParticleOption::codec, BlockParticleOption::streamCodec);
+        FALLING_CHERRY = FabricParticleTypes.complex(true, BlockParticleOption::codec, BlockParticleOption::streamCodec);
+        FALLING_SNOW = FabricParticleTypes.complex(true, BlockParticleOption::codec, BlockParticleOption::streamCodec);
 
         LEAVES = Map.of(
             FALLING_LEAF, id("falling_leaf"),
@@ -76,15 +74,15 @@ public class Leaves {
 
     private static void registerLeafParticles() {
         for (var entry : LEAVES.entrySet()) {
-            Registry.register(Registries.PARTICLE_TYPE, entry.getValue(), entry.getKey());
+            Registry.register(BuiltInRegistries.PARTICLE_TYPE, entry.getValue(), entry.getKey());
             ParticleFactoryRegistry.getInstance().register(entry.getKey(), FallingLeafParticle.BlockStateFactory::new);
         }
     }
 
     private static void registerReloadListener() {
-        ResourceLoader.get(ResourceType.CLIENT_RESOURCES).registerReloader(id("resource_reload_listener"), new SynchronousResourceReloader() {
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloader(id("resource_reload_listener"), new ResourceManagerReloadListener() {
             @Override
-            public void reload(ResourceManager resourceManager) {
+            public void onResourceManagerReload(ResourceManager resourceManager) {
                 // This is called before the block tags are usable, so we'll get an incomplete list of leaf blocks
                 // Still better than having an empty settings menu on first launch
                 if (!preLoadedRegisteredLeafBlocks) {
@@ -101,11 +99,11 @@ public class Leaves {
 
     /** Spawn between 0 and 3 leaves on hitting a leaf block */
     private static void registerAttackBlockLeaves() {
-        AttackBlockCallback.EVENT.register((PlayerEntity player, World world, Hand hand, BlockPos pos, Direction direction) -> {
-            if (!CONFIG.enabled || !CONFIG.leavesOnBlockHit || !world.isClient())
-                return ActionResult.PASS;
+        AttackBlockCallback.EVENT.register((Player player, Level level, InteractionHand hand, BlockPos pos, Direction direction) -> {
+            if (!CONFIG.enabled || !CONFIG.leavesOnBlockHit || !level.isClientSide())
+                return InteractionResult.PASS;
 
-            BlockState state = world.getBlockState(pos);
+            BlockState state = level.getBlockState(pos);
             LeafSettingsEntry leafSettings = getLeafSettingsEntry(state);
 
             if (leafSettings != null) {
@@ -113,28 +111,28 @@ public class Leaves {
                     // binomial distribution - extremes (0 or 3 leaves) are less likely
                     int count = 0;
                     for (int i = 0; i < 3; i++) {
-                        if (world.random.nextBoolean()) {
+                        if (level.random.nextBoolean()) {
                             count++;
                         }
                     }
 
-                    LeafUtil.spawnLeafParticles(count, false, state, world, pos, world.random, leafSettings);
+                    LeafUtil.spawnLeafParticles(count, false, state, level, pos, level.random, leafSettings);
                 }
 
                 // spawn a bit of snow too
                 if (CONFIG.getSnowflakeSpawnChance() != 0) {
                     int snowCount = 0;
                     for (int i = 0; i < 6; i++) {
-                        if (world.random.nextBoolean()) {
+                        if (level.random.nextBoolean()) {
                             snowCount++;
                         }
                     }
 
-                    LeafUtil.spawnSnowParticles(snowCount, false, state, world, pos, world.random);
+                    LeafUtil.spawnSnowParticles(snowCount, false, state, level, pos, level.random);
                 }
             }
 
-            return ActionResult.PASS;
+            return InteractionResult.PASS;
         });
     }
 }

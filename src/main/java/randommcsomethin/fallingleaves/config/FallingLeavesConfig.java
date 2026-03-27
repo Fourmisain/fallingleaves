@@ -4,11 +4,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
-import net.minecraft.command.argument.BlockArgumentParser;
-import net.minecraft.registry.Registries;
-import net.minecraft.state.property.Property;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.commands.arguments.blocks.BlockStateParser;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.state.properties.Property;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -102,7 +101,7 @@ public class FallingLeavesConfig implements ConfigData {
 
     @ConfigEntry.Category("fallingleaves.general")
     public Set<Identifier> windlessDimensions = new HashSet<>(Arrays.asList(
-        Identifier.ofVanilla("the_nether"), Identifier.ofVanilla("the_end")));
+        Identifier.withDefaultNamespace("the_nether"), Identifier.withDefaultNamespace("the_end")));
 
     @ConfigEntry.Category("fallingleaves.leafsettings")
     @ConfigEntry.Gui.TransitiveObject
@@ -167,19 +166,19 @@ public class FallingLeavesConfig implements ConfigData {
             int a = spawner.indexOf("[");
             if (a != -1) {
                 // get id
-                Identifier id = Identifier.of(spawner.substring(0, a));
+                Identifier id = Identifier.parse(spawner.substring(0, a));
                 leafSpawnerIds.add(id);
 
                 // parse properties
                 try {
-                    var block = BlockArgumentParser.block(Registries.BLOCK, spawner, false);
+                    var block = BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK, spawner, false);
                     leafSpawnerProperties.put(id, block.properties());
                 } catch (CommandSyntaxException e) {
                     LOGGER.error("could not parse block state arguments of {}", spawner);
                 }
             } else {
                 // regular id
-                leafSpawnerIds.add(Identifier.of(spawner));
+                leafSpawnerIds.add(Identifier.parse(spawner));
             }
         }
     }

@@ -1,6 +1,6 @@
 package randommcsomethin.fallingleaves.util;
 
-import net.minecraft.util.Language;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
@@ -30,8 +30,8 @@ public class TranslationComparator implements Comparator<String> {
         String cachedTranslation = translations.get(translationKey);
 
         // Update translation when needed
-        if (cachedTranslation == null && language.hasTranslation(translationKey)) {
-            String translation = language.get(translationKey);
+        if (cachedTranslation == null && language.has(translationKey)) {
+            String translation = language.getOrDefault(translationKey);
             translations.put(translationKey, translation);
             return translation;
         }

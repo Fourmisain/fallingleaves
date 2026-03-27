@@ -6,8 +6,7 @@ import me.shedaniel.autoconfig.gui.registry.api.GuiRegistryAccess;
 import me.shedaniel.autoconfig.util.Utils;
 import me.shedaniel.clothconfig2.api.AbstractConfigListEntry;
 import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
-import net.minecraft.text.Text;
-
+import net.minecraft.network.chat.Component;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -55,7 +54,7 @@ public class StringSetGuiProvider<T> implements GuiProvider {
         return Collections.singletonList(
             ConfigEntryBuilder.create()
                 .startStrList(
-                    Text.translatable(i13n),
+                    Component.translatable(i13n),
                     Utils.<Set<T>>getUnsafely(field, config).stream()
                         .map(Object::toString)
                         .collect(toList())
