@@ -1,3 +1,7 @@
+## 2.0.5
+
+- fix crash when using vanilla textures
+
 ### 2.0.4
 
 port to 26.1
