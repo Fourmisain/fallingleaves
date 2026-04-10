@@ -52,7 +52,7 @@ public class LeafUtil {
     private static final RandomSource renderRandom = RandomSource.createThreadLocalInstance();
 
     public static SpriteSet getSpriteProvider(Identifier spriteId) {
-        return ((ParticleSpriteManagerAccessor) Minecraft.getInstance().particleEngine).getSpriteSets().get(spriteId);
+        return((ParticleResourcesAccessor) ((ParticleEngineAccessor) Minecraft.getInstance().particleEngine).getResourceManager()).getSpriteSets().get(spriteId);
     }
 
     public static float getModifiedSpawnChance(BlockPos pos, BlockState state, LeafSettingsEntry leafSettings) {
