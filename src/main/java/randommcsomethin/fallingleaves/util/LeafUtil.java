@@ -2,6 +2,7 @@ package randommcsomethin.fallingleaves.util;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.SpriteSet;
@@ -248,7 +249,10 @@ public class LeafUtil {
         SpriteContents spriteContents = sprite.contents();
         Identifier spriteId = spriteContents.name();
         NativeImage texture = ((SpriteContentsAccessor) spriteContents).getByMipLevel()[0]; // directly extract texture
-        int blockColor = (shouldColor ? level.getClientLeafTintColor(pos) : -1);
+
+        // note: this is just level.getClientLeafTintColor(pos) without level.getBlockState(pos) as the BlockState might already be deleted when leaves are decaying
+        var tintSource = Minecraft.getInstance().getBlockColors().getTintSource(state, 0);
+        int blockColor = (shouldColor && tintSource != null ? tintSource.colorInWorld(state, level, pos) : -1);
 
         return calculateLeafColor(spriteId, texture, blockColor);
     }
