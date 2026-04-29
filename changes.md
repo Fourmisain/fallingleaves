@@ -1,3 +1,7 @@
+## 2.0.6
+
+- fix decaying leaves sometimes being gray
+
 ## 2.0.5
 
 - fix crash when using vanilla textures
