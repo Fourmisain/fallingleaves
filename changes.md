@@ -1,3 +1,7 @@
+## 2.0.7
+
+- fix crash issue with Bloom
+
 ## 2.0.6
 
 - fix decaying leaves sometimes being gray
