@@ -8,7 +8,6 @@
     "BlockMixin",
     "BlockStateModelWrapperAccessor",
     "ClientPlayNetworkHandlerMixin",
-    "GsonConfigSerializerMixin",
     "LeafTickMixin",
     "LeavesBlockAccessor",
     "MinecraftClientMixin",
