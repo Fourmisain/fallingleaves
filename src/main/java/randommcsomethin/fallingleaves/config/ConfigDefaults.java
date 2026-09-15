@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.TintedParticleLeavesBlock;
 import net.minecraft.world.level.block.UntintedParticleLeavesBlock;
 import randommcsomethin.fallingleaves.FallingLeavesClient;
-import randommcsomethin.fallingleaves.mixin.LeavesBlockAccessor;
+import randommcsomethin.fallingleaves.mixin.FallingParticlesLeavesBlockAccessor;
 import randommcsomethin.fallingleaves.particle.ParticleImplementation;
 
 // TODO: this needs to be readjusted once mods are out for 1.21.5
@@ -136,7 +136,7 @@ public class ConfigDefaults {
         }
 
         Block block = BuiltInRegistries.BLOCK.getValue(blockId);
-        if (!(block instanceof LeavesBlockAccessor leavesBlock))
+        if (!(block instanceof FallingParticlesLeavesBlockAccessor leavesBlock))
             return 1;
 
         float chance = leavesBlock.getLeafParticleChance();

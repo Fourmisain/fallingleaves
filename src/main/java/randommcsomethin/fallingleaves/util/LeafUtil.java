@@ -2,7 +2,6 @@ package randommcsomethin.fallingleaves.util;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.SpriteSet;
@@ -104,7 +103,7 @@ public class LeafUtil {
     public static void spawnLeafParticles(int count, boolean spawnInsideBlock, BlockState state, Level level, BlockPos pos, RandomSource random, LeafSettingsEntry leafSettings) {
         if (count == 0) return;
 
-        if (leafSettings.getImplementation() == VANILLA && state.getBlock() instanceof LeavesBlockAccessor leavesBlock) {
+        if (leafSettings.getImplementation() == VANILLA && state.getBlock() instanceof FallingParticlesLeavesBlockAccessor leavesBlock) {
             for (int i = 0; i < count; i++) {
                 // doesn't respect spawnInsideBlock
                 leavesBlock.callSpawnFallingLeavesParticle(level, pos, random);

@@ -198,7 +198,7 @@ public class FallingLeafParticle extends SingleQuadParticle {
         double oldDz = dz;
 
         // TODO: is it possible to turn off collisions with leaf blocks?
-        Vec3 vec3d = Entity.collideBoundingBox(null, new Vec3(dx, dy, dz), getBoundingBox(), level, List.of());
+        Vec3 vec3d = Entity.collideBoundingBox((Entity) null, new Vec3(dx, dy, dz), getBoundingBox(), level, List.of());
         dx = vec3d.x;
         dy = vec3d.y;
         dz = vec3d.z;
