@@ -5,5 +5,15 @@ pluginManagement {
             url = 'https://maven.fabricmc.net/'
         }
         gradlePluginPortal()
+        exclusiveContent {
+            forRepository {
+                maven {
+                    url = 'https://maven.maxhenkel.de/repository/public'
+                }
+            }
+            filter {
+                includeGroupAndSubgroups 'de.maxhenkel'
+            }
+        }
     }
 }
